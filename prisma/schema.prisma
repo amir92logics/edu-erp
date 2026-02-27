@@ -1,0 +1,255 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum Role {
+  SUPER_ADMIN
+  SCHOOL_ADMIN
+  TEACHER
+  STUDENT
+  PARENT
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  TRIAL
+}
+
+enum FeeStatus {
+  PENDING
+  PAID
+  FAILED
+}
+
+enum TransactionStatus {
+  SUCCESS
+  FAILED
+  PENDING
+}
+
+model School {
+  id                String             @id @default(cuid())
+  name              String
+  slug              String             @unique // for subdomain-based tenancy
+  logo              String?
+  address           String?
+  contactEmail      String?
+  contactPhone      String?
+  
+  status            SubscriptionStatus @default(TRIAL)
+  subscriptionPlan  String             @default("BASIC") // BASIC, PRO, ENTERPRISE
+  trialEndsAt       DateTime?
+  
+  // Merchant Credentials
+  jazzCashMerchantId String?
+  jazzCashPassword   String?
+  jazzCashSalt       String?
+  easypaisaMerchantId String?
+  easypaisaHashKey   String?
+  
+  isWhatsAppApproved Boolean           @default(false)
+
+  // Usage Quotas (controlled by Super Admin)
+  maxClasses            Int?              // null = unlimited
+  maxStudents           Int?              // null = unlimited
+  maxWhatsappPerMonth   Int?              // null = unlimited
+  whatsappSentThisMonth Int               @default(0)
+  whatsappMonthResetAt  DateTime          @default(now())
+
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  users             User[]
+  students          Student[]
+  classes           Class[]
+  fees              Fee[]
+  transactions      Transaction[]
+  announcements     Announcement[]
+  whatsappSessions  WhatsAppSession[]
+  featureFlags      FeatureFlag[]
+  auditLogs         AuditLog[]
+
+  @@index([slug])
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String
+  name          String?
+  role          Role      @default(SCHOOL_ADMIN)
+  
+  schoolId      String?
+  school        School?   @relation(fields: [schoolId], references: [id])
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([schoolId])
+}
+
+model Student {
+  id              String    @id @default(cuid())
+  schoolId        String
+  school          School    @relation(fields: [schoolId], references: [id])
+  
+  name            String
+  rollNumber      String?
+  parentPhone     String
+  status          String    @default("ACTIVE") // ACTIVE, INACTIVE
+  
+  classId         String?
+  class           Class?    @relation(fields: [classId], references: [id])
+  
+  fees            Fee[]
+  transactions    Transaction[]
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([schoolId])
+  @@index([classId])
+  @@index([parentPhone])
+}
+
+model Class {
+  id              String    @id @default(cuid())
+  schoolId        String
+  school          School    @relation(fields: [schoolId], references: [id])
+  
+  name            String
+  teacherName     String?
+  monthlyFee      Decimal   @db.Decimal(10, 2)
+  
+  students        Student[]
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([schoolId])
+}
+
+model Fee {
+  id              String    @id @default(cuid())
+  schoolId        String
+  school          School    @relation(fields: [schoolId], references: [id])
+  
+  studentId       String
+  student         Student   @relation(fields: [studentId], references: [id])
+  
+  month           Int       // 1-12
+  year            Int
+  amount          Decimal   @db.Decimal(10, 2)
+  dueDate         DateTime
+  status          FeeStatus @default(PENDING)
+  lateFine        Decimal   @default(0) @db.Decimal(10, 2)
+  
+  transactions    Transaction[]
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([schoolId])
+  @@index([studentId])
+  @@index([month, year])
+}
+
+model Transaction {
+  id              String            @id @default(cuid())
+  schoolId        String
+  school          School            @relation(fields: [schoolId], references: [id])
+  
+  studentId       String
+  student         Student           @relation(fields: [studentId], references: [id])
+  
+  feeId           String?
+  fee             Fee?              @relation(fields: [feeId], references: [id])
+  
+  transactionRef  String            @unique
+  amount          Decimal           @db.Decimal(10, 2)
+  method          String            // JAZZCASH, EASYPAISA, MANUAL, SANDBOX
+  status          TransactionStatus @default(PENDING)
+  
+  gatewayResponse Json?
+  
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([schoolId])
+  @@index([studentId])
+  @@index([feeId])
+  @@index([transactionRef])
+}
+
+model WhatsAppSession {
+  id              String    @id @default(cuid())
+  schoolId        String
+  school          School    @relation(fields: [schoolId], references: [id])
+  
+  sessionData     Json?
+  status          String    @default("DISCONNECTED") // CONNECTED, DISCONNECTED, LOADING
+  qrCode          String?   @db.Text
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([schoolId])
+}
+
+model Announcement {
+  id              String    @id @default(cuid())
+  schoolId        String
+  school          School    @relation(fields: [schoolId], references: [id])
+  
+  title           String
+  content         String    @db.Text
+  targetType      String    @default("ALL") // ALL, CLASS
+  targetId        String?   // Class ID if targetType is CLASS
+  
+  sentViaWhatsApp Boolean   @default(false)
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([schoolId])
+}
+
+model FeatureFlag {
+  id              String    @id @default(cuid())
+  schoolId        String
+  school          School    @relation(fields: [schoolId], references: [id])
+  
+  featureName     String
+  isEnabled       Boolean   @default(false)
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([schoolId, featureName])
+}
+
+model AuditLog {
+  id              String    @id @default(cuid())
+  schoolId        String?
+  school          School?   @relation(fields: [schoolId], references: [id])
+  
+  userId          String?
+  action          String
+  entityType      String
+  entityId        String?
+  details         Json?
+  
+  createdAt       DateTime  @default(now())
+
+  @@index([schoolId])
+  @@index([userId])
+}
