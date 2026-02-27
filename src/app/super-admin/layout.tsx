@@ -1,5 +1,7 @@
 import { SuperAdminSidebar } from "@/components/layout/SuperAdminSidebar";
 
+export const dynamic = "force-dynamic";
+
 export default function SuperAdminLayout({
     children,
 }: {

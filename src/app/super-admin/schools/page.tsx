@@ -9,6 +9,8 @@ import {
 import { SchoolActions } from "./SchoolActions";
 import { OnboardSchoolModal } from "./OnboardSchoolModal";
 
+export const dynamic = "force-dynamic";
+
 export default async function SuperAdminSchoolsPage() {
     const schools = await getAllSchools();
 

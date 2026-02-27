@@ -5,10 +5,13 @@ import {
     AlertTriangle,
     ArrowUpRight,
     Plus,
-    ArrowRight
+    ArrowRight,
+    Search
 } from "lucide-react";
 import { db } from "@/lib/db";
 import { OnboardSchoolModal } from "./schools/OnboardSchoolModal";
+
+export const dynamic = "force-dynamic";
 
 export default async function SuperAdminDashboard() {
     // 1. Fetch real platform data

@@ -2,6 +2,8 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { Navbar } from "@/components/layout/Navbar";
 import { getSchoolPlan } from "@/app/actions/settings";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminLayout({
     children,
 }: {

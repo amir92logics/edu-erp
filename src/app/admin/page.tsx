@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import { WhatsAppStatus } from "./WhatsAppStatus";
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardPage() {
     const statsData = await getAdminStats();
 

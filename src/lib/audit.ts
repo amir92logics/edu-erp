@@ -16,7 +16,7 @@ export async function createAuditLog(data: {
                 action: data.action,
                 entityType: data.entityType,
                 entityId: data.entityId,
-                metadata: data.metadata ? JSON.stringify(data.metadata) : undefined,
+                details: data.metadata ? JSON.stringify(data.metadata) : undefined,
             }
         });
     } catch (error) {

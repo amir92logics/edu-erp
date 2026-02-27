@@ -55,7 +55,7 @@ export function DialogContent({
                     "relative w-full max-w-lg bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-100 flex flex-col max-h-[90vh]",
                     className
                 )}
-                {...props}
+                {...(props as any)}
             >
                 {/* Close Button Trigger Area (Floating) */}
                 <button

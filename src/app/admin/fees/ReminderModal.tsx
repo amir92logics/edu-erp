@@ -54,7 +54,7 @@ export function ReminderModal({
     async function handleSend() {
         setSending(true);
         try {
-            const res = await sendWhatsAppReminder(feeId, editedMessage);
+            const res = await sendWhatsAppReminder(feeId, editedMessage) as any;
             if (res.success) {
                 toast.success("Reminder dispatched via WhatsApp!");
                 onClose();
