@@ -53,7 +53,8 @@ export async function createAnnouncement(formData: z.infer<typeof AnnouncementSc
             },
             select: { parentPhone: true }
         });
-        phones = Array.from(new Set(recipients.map(r => r.parentPhone)));
+        const allPhones = recipients.map((r: { parentPhone: string }) => r.parentPhone);
+        phones = Array.from(new Set(allPhones));
 
         const quota = await getSchoolQuota(schoolId);
         if (quota.whatsapp.max !== null && (quota.whatsapp.used + phones.length) > quota.whatsapp.max) {
