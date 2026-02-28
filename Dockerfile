@@ -1,7 +1,7 @@
 # Production Dockerfile for Next.js with Puppeteer (WhatsApp support)
 FROM node:20
 
-# Install Chromium and system dependencies for Puppeteer
+# 1. Install Chromium and system dependencies for Puppeteer
 RUN apt-get update && apt-get install -y \
     chromium \
     fonts-ipafont-gothic \
@@ -26,30 +26,25 @@ RUN apt-get update && apt-get install -y \
     --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
-# Set environment variables for Puppeteer
+# 2. Set environment variables for Puppeteer
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
     PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
-
-# Install dependencies (ignoring scripts initially to isolate errors)
-# We use --legacy-peer-deps to ignore potential conflicts with very new Next/React versions
-RUN npm install --legacy-peer-deps --ignore-scripts
-
-# Copy source
+# 3. Copy EVERYTHING first so Prisma schema is guaranteed to be there
 COPY . .
 
-# Now run the generator manually
+# 4. Install dependencies
+# Using --legacy-peer-deps for Next.js 16 / React 19 compatibility
+RUN npm install --legacy-peer-deps
+
+# 5. Generate Prisma Client (Schema is now definitely in /app/prisma/schema.prisma)
 RUN npx prisma generate
 
-# Build Next.js
+# 6. Build Next.js
 RUN npm run build
 
-# Expose port
+# 7. Expose port and start
 EXPOSE 3000
-
-# Start command
 CMD ["npm", "start"]
