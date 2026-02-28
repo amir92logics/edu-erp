@@ -1,17 +1,11 @@
 import { PrismaClient } from '@prisma/client';
-import { PrismaMariaDb } from '@prisma/adapter-mariadb';
-import * as mariadb from 'mariadb';
 import bcrypt from 'bcryptjs';
 import "dotenv/config";
 
-const connectionString = process.env.DATABASE_URL;
-if (!connectionString) throw new Error("DATABASE_URL not set");
-
-const adapter = new PrismaMariaDb(connectionString);
-const prisma = new PrismaClient({ adapter });
+const prisma = new PrismaClient();
 
 async function main() {
-    console.log('--- Starting Seeding Process (Prisma 7) ---');
+    console.log('--- Starting Seeding Process (MySQL/Railway) ---');
 
     // 1. Create a Platform Super Admin
     const adminEmail = 'superadmin@edupro.com';
