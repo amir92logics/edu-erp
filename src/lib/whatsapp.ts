@@ -44,7 +44,13 @@ export async function initializeWhatsApp(schoolId: string) {
 
     console.log(`[WhatsApp] Starting production initialization for school: ${schoolId}`);
 
-    // Railway-specific production check
+    // Set initial status to INITIALIZING in DB so timeout logic and UI can track it
+    await db.whatsAppSession.upsert({
+        where: { schoolId },
+        update: { status: "INITIALIZING", qrCode: null },
+        create: { schoolId, status: "INITIALIZING" }
+    });
+
     const isProduction = process.env.NODE_ENV === 'production';
     const store = await getMongoStore();
 
@@ -181,7 +187,16 @@ export async function sendWhatsAppMessage(schoolId: string, phone: string, messa
         // Force state check
         const state = await client.getState();
         if (state !== 'CONNECTED') {
-            return { success: false, error: "WhatsApp is in state: " + state };
+            const session = await db.whatsAppSession.findUnique({ where: { schoolId } });
+
+            if (state === null || state === 'OPENING') {
+                if (session?.status === "WAITING_FOR_SCAN") {
+                    return { success: false, error: "WhatsApp needs to be paired. Please scan the QR code in Settings." };
+                }
+                return { success: false, error: "WhatsApp is still initializing. Please try again in 30 seconds." };
+            }
+
+            return { success: false, error: `WhatsApp is not connected (State: ${state || 'OFFLINE'}). Current status: ${session?.status || 'UNKNOWN'}` };
         }
 
         let formattedPhone = phone.replace(/\D/g, "");

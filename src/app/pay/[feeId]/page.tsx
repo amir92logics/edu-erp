@@ -17,11 +17,14 @@ export default async function PaymentPage({
     params,
     searchParams,
 }: {
-    params: { feeId: string };
-    searchParams: { status?: string };
+    params: Promise<{ feeId: string }>;
+    searchParams: Promise<{ status?: string }>;
 }) {
+    const { feeId } = await params;
+    const { status: returnStatus } = await searchParams;
+
     const fee = await db.fee.findUnique({
-        where: { id: params.feeId },
+        where: { id: feeId },
         include: {
             student: { include: { class: true } },
             school: true,
@@ -40,7 +43,6 @@ export default async function PaymentPage({
 
     const totalAmount = Number(fee.amount) + Number(fee.lateFine);
     const isPaid = fee.status === "PAID";
-    const returnStatus = searchParams?.status; // "success" | "failed" passed back from gateway redirect
 
     const InfoRow = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) => (
         <div className="flex items-center gap-3 py-3 border-b border-slate-100 last:border-0">
