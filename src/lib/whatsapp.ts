@@ -9,7 +9,7 @@ const clients: Record<string, Client> = (global as { whatsappClients?: Record<st
 (global as { whatsappClients?: Record<string, Client> }).whatsappClients = clients;
 
 // Ensure MongoDB is connected for RemoteAuth if using MongoDB
-let storePromise: Promise<MongoStore> | null = null;
+let storePromise: Promise<any> | null = null;
 async function getMongoStore() {
     if (!process.env.MONGODB_URI) {
         console.warn("[WhatsApp] MONGODB_URI not found. RemoteAuth may fail in production.");
