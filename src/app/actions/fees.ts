@@ -32,7 +32,7 @@ export async function generateMonthlyFees(month: number, year: number) {
 
         if (existing) continue;
 
-        await db.fee.create({
+        const fee = await db.fee.create({
             data: {
                 schoolId,
                 studentId: student.id,
@@ -41,8 +41,30 @@ export async function generateMonthlyFees(month: number, year: number) {
                 amount: student.class.monthlyFee,
                 dueDate: new Date(year, month - 1, 10), // 10th of the month
                 status: "PENDING"
+            },
+            include: { student: { include: { class: true } }, school: true }
+        });
+
+        // 3. Enqueue WhatsApp Notification
+        const monthName = new Intl.DateTimeFormat('en-US', { month: 'long' }).format(new Date(fee.year, fee.month - 1));
+        const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/$/, "");
+        const payLink = `${baseUrl}/pay/${fee.id}`;
+
+        const message = `Dear Parent, Fee for ${fee.student.name} (${fee.student.class?.name || 'N/A'}) is PKR ${Number(fee.amount).toLocaleString()}. 
+Due Date: ${new Date(fee.dueDate).toLocaleDateString('en-PK')}. 
+Pay Online: ${payLink}`;
+
+        await db.whatsappQueue.create({
+            data: {
+                schoolId,
+                studentId: student.id,
+                phoneNumber: student.parentPhone,
+                message,
+                status: "PAUSED", // Wait for admin to "Start" the queue
+                scheduledAt: new Date()
             }
         });
+
         generatedCount++;
     }
 
@@ -50,11 +72,26 @@ export async function generateMonthlyFees(month: number, year: number) {
     return { success: true, count: generatedCount };
 }
 
-export async function getPendingFees() {
+export async function getPendingFees(query: string = "", month: string = "", year: string = "") {
     const schoolId = await getRequiredSchoolId();
 
     return await db.fee.findMany({
-        where: { schoolId, status: "PENDING" },
+        where: {
+            schoolId,
+            status: "PENDING",
+            ...(month ? { month: parseInt(month) } : {}),
+            ...(year ? { year: parseInt(year) } : {}),
+            ...(query
+                ? {
+                    student: {
+                        OR: [
+                            { name: { contains: query } },
+                            { rollNumber: { contains: query } },
+                        ],
+                    },
+                }
+                : {}),
+        },
         include: {
             student: {
                 include: { class: true }

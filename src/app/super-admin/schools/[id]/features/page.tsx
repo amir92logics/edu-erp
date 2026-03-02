@@ -54,7 +54,7 @@ export default async function SchoolFeaturesPage({ params }: PageProps) {
                         <p className="text-slate-500 font-medium mt-1">Gating and entitlement management for specific institution modules.</p>
                     </div>
                 </div>
-                <button className="flex items-center gap-2 px-8 py-3 bg-slate-900 text-white rounded-xl text-sm font-bold shadow-xl shadow-slate-900/10 hover:bg-slate-800 transition-all">
+                <button className="flex items-center gap-2 px-8 py-3 bg-blue-600 text-white rounded-xl text-sm font-bold shadow-xl shadow-blue-500/10 hover:bg-blue-700 transition-all">
                     <Save size={20} />
                     Persist Changes
                 </button>

@@ -41,7 +41,7 @@ export function EditClassModal({ cls }: { cls: any }) {
         <>
             <button
                 onClick={() => setIsOpen(true)}
-                className="flex-1 py-2 border border-slate-200 rounded-lg text-xs font-bold hover:bg-slate-50 flex items-center justify-center gap-2 transition-colors"
+                className="flex-1 py-2 border border-blue-200 rounded-lg text-xs font-bold text-blue-600 hover:bg-blue-50 hover:border-blue-300 flex items-center justify-center gap-2 transition-colors"
             >
                 <Settings2 size={14} /> Edit Structure
             </button>

@@ -94,7 +94,7 @@ export function WhatsAppStatus() {
             <button
                 disabled={loading || state?.status === "INITIALIZING"}
                 onClick={handleInit}
-                className="mt-6 w-full py-3 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 disabled:opacity-50 active:scale-95 transition-all shadow-lg"
+                className="mt-6 w-full py-3 bg-blue-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-blue-700 disabled:opacity-50 active:scale-95 transition-all shadow-lg shadow-blue-500/20"
             >
                 {state?.status === "INITIALIZING" || loading ? "Spinning up..." : "Link New Session"}
             </button>

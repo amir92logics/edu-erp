@@ -210,7 +210,7 @@ export function CreateAnnouncementModal({ classes }: { classes: any[] }) {
                             <button
                                 disabled={loading}
                                 type="submit"
-                                className="w-full py-3 bg-slate-900 text-white rounded-xl text-sm font-bold hover:bg-slate-800 disabled:opacity-50 transition-all flex items-center justify-center gap-2 shadow-lg active:scale-[0.98]"
+                                className="w-full py-3 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 disabled:opacity-50 transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 active:scale-[0.98]"
                             >
                                 {loading
                                     ? <Loader2 className="animate-spin" size={16} />

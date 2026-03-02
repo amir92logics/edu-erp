@@ -1,38 +1,60 @@
 "use client";
 
 import { useState } from "react";
-import { UserCheck, User, Hash, Phone, Loader2, Save } from "lucide-react";
+import {
+    UserCheck,
+    User,
+    Hash,
+    Phone,
+    Loader2,
+    Save,
+    AlertCircle,
+} from "lucide-react";
 import { updateStudent } from "@/app/actions/students";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 
 export function EditStudentModal({ student }: { student: any }) {
     const [isOpen, setIsOpen] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [rollError, setRollError] = useState<string | null>(null);
     const router = useRouter();
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
         setLoading(true);
+        setRollError(null);
 
         const formData = new FormData(e.currentTarget);
         const data = {
             name: formData.get("name") as string,
-            rollNumber: formData.get("rollNumber") as string || undefined,
+            rollNumber: (formData.get("rollNumber") as string) || undefined,
             parentPhone: formData.get("parentPhone") as string,
-            classId: student.classId, // Maintain class association
+            classId: student.classId,
         };
 
         try {
             const result = await updateStudent(student.id, data);
+
             if (result.success) {
                 toast.success("Student profile updated!");
                 setIsOpen(false);
                 router.refresh();
+            } else if (result.error) {
+                if (result.error.toLowerCase().includes("roll number")) {
+                    setRollError(result.error);
+                } else {
+                    toast.error(result.error);
+                }
             }
         } catch (error) {
-            toast.error("Failed to update student.");
+            toast.error("Failed to update student. Please try again.");
         } finally {
             setLoading(false);
         }
@@ -52,13 +74,18 @@ export function EditStudentModal({ student }: { student: any }) {
                 <DialogContent className="max-w-lg bg-white rounded-3xl overflow-hidden shadow-2xl">
                     <DialogHeader className="p-8 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
                         <div>
-                            <DialogTitle className="text-xl font-bold text-slate-900">Edit Student</DialogTitle>
-                            <p className="text-sm text-slate-500">Update information for {student.name}.</p>
+                            <DialogTitle className="text-xl font-bold text-slate-900">
+                                Edit Student
+                            </DialogTitle>
+                            <p className="text-sm text-slate-500">
+                                Update information for {student.name}.
+                            </p>
                         </div>
                     </DialogHeader>
 
                     <form onSubmit={handleSubmit} className="p-8 space-y-6">
                         <div className="space-y-4">
+                            {/* Full name */}
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-slate-500 flex items-center gap-2">
                                     <User size={14} /> Full Name
@@ -71,6 +98,7 @@ export function EditStudentModal({ student }: { student: any }) {
                                 />
                             </div>
 
+                            {/* Roll Number */}
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-slate-500 flex items-center gap-2">
                                     <Hash size={14} /> Roll Number (Optional)
@@ -78,10 +106,21 @@ export function EditStudentModal({ student }: { student: any }) {
                                 <input
                                     name="rollNumber"
                                     defaultValue={student.rollNumber || ""}
-                                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium"
+                                    onChange={() => setRollError(null)}
+                                    className={`w-full px-4 py-2.5 rounded-xl outline-none focus:ring-2 transition-all font-medium ${rollError
+                                            ? "bg-red-50 border border-red-400 focus:ring-red-500/10 focus:border-red-500"
+                                            : "bg-slate-50 border border-slate-200 focus:ring-blue-500/10 focus:border-blue-500"
+                                        }`}
                                 />
+                                {rollError && (
+                                    <p className="flex items-center gap-1.5 text-xs text-red-600 font-medium">
+                                        <AlertCircle size={12} />
+                                        {rollError}
+                                    </p>
+                                )}
                             </div>
 
+                            {/* Parent Phone */}
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-slate-500 flex items-center gap-2">
                                     <Phone size={14} /> Parent Phone
@@ -100,7 +139,13 @@ export function EditStudentModal({ student }: { student: any }) {
                             type="submit"
                             className="w-full py-3 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 disabled:opacity-50 transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-100"
                         >
-                            {loading ? <Loader2 className="animate-spin" size={18} /> : <><Save size={18} /> Save Changes</>}
+                            {loading ? (
+                                <Loader2 className="animate-spin" size={18} />
+                            ) : (
+                                <>
+                                    <Save size={18} /> Save Changes
+                                </>
+                            )}
                         </button>
                     </form>
                 </DialogContent>

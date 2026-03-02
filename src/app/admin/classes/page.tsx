@@ -1,11 +1,26 @@
 import { getClasses } from "@/app/actions/classes";
-import { Plus, GraduationCap, Users, Bookmark } from "lucide-react";
+import { Plus, GraduationCap, Users, Bookmark, Search, X } from "lucide-react";
 import { CreateClassModal } from "./CreateClassModal";
 import { EditClassModal } from "./EditClassModal";
 import { DeleteClassButton } from "./DeleteClassButton";
+import Link from "next/link";
 
-export default async function ClassesPage() {
-    const classes = await getClasses();
+export default async function ClassesPage({
+    searchParams,
+}: {
+    searchParams: Promise<{ q?: string }>;
+}) {
+    const params = await searchParams;
+    const query = (params.q || "").toLowerCase();
+    const allClasses = await getClasses();
+
+    const classes = query
+        ? allClasses.filter(
+            (cls) =>
+                cls.name.toLowerCase().includes(query) ||
+                (cls.teacherName || "").toLowerCase().includes(query)
+        )
+        : allClasses;
 
     return (
         <div className="space-y-6">
@@ -17,12 +32,56 @@ export default async function ClassesPage() {
                 <CreateClassModal />
             </div>
 
+            {/* Search bar */}
+            <form method="GET" className="flex items-center gap-3">
+                <div className="relative flex-1 max-w-md">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
+                    <input
+                        name="q"
+                        defaultValue={params.q || ""}
+                        type="text"
+                        placeholder="Search by class name or teacher..."
+                        className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium shadow-sm"
+                    />
+                </div>
+                <button
+                    type="submit"
+                    className="px-4 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 active:scale-95 transition-all shadow-sm shadow-blue-100"
+                >
+                    Search
+                </button>
+                {query && (
+                    <Link
+                        href="/admin/classes"
+                        className="flex items-center gap-1.5 px-3 py-2.5 text-sm text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors font-medium"
+                    >
+                        <X size={14} /> Clear
+                    </Link>
+                )}
+            </form>
+
+            {query && (
+                <p className="text-sm text-slate-500">
+                    Showing <span className="font-bold text-slate-900">{classes.length}</span> of{" "}
+                    <span className="font-bold text-slate-900">{allClasses.length}</span> classes for &quot;{query}&quot;
+                </p>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {classes.length === 0 ? (
                     <div className="col-span-full flex flex-col items-center justify-center p-20 bg-white border border-dashed border-slate-200 rounded-2xl text-slate-400">
                         <GraduationCap size={48} className="mb-4 opacity-20" />
-                        <p className="font-medium">No classes defined yet.</p>
-                        <p className="text-xs">Create your first class to start registering students.</p>
+                        <p className="font-medium">
+                            {query ? `No classes match "${query}".` : "No classes defined yet."}
+                        </p>
+                        <p className="text-xs mt-1">
+                            {query ? "Try a different search term." : "Create your first class to start registering students."}
+                        </p>
+                        {query && (
+                            <Link href="/admin/classes" className="mt-4 text-xs text-blue-600 hover:underline font-semibold">
+                                Clear search
+                            </Link>
+                        )}
                     </div>
                 ) : (
                     classes.map((cls) => (

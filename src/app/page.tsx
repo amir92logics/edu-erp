@@ -1,65 +1,129 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState } from "react";
+import { login } from "@/app/actions/auth";
+import { ShieldCheck, Loader2, Eye, EyeOff } from "lucide-react";
+
+export default function LoginPage() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+
+    try {
+      const result = await login({ email, password });
+
+      if (result.error) {
+        setError(result.error);
+        setLoading(false);
+      } else if (result.redirect) {
+        // Hard navigation to flush stale cache
+        window.location.href = result.redirect;
+      } else {
+        setLoading(false);
+        setError("Unexpected server response. Please try again.");
+      }
+    } catch (err: any) {
+      console.error("Login client error:", err);
+      setError("Connection error. Please try again.");
+      setLoading(false);
+    }
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
+      {/* Background decoration */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl" />
+      </div>
+
+      <div className="relative max-w-md w-full">
+        {/* Brand */}
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center justify-center p-3.5 bg-blue-600 rounded-2xl mb-5 shadow-xl shadow-blue-900/40">
+            <ShieldCheck className="text-white w-8 h-8" />
+          </div>
+          <h1 className="text-3xl font-black text-white tracking-tight">
+            EduPro ERP
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="text-slate-400 mt-2 text-sm">
+            Sign in to manage your institution
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        {/* Card */}
+        <div className="bg-white/[0.05] backdrop-blur-xl p-8 rounded-3xl shadow-2xl border border-white/10">
+          {error && (
+            <div className="mb-6 p-3.5 bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-xl flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">
+                Email Address
+              </label>
+              <input
+                name="email"
+                type="email"
+                required
+                placeholder="admin@school.com"
+                className="w-full px-4 py-3 rounded-xl bg-white/[0.07] border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  required
+                  placeholder="••••••••"
+                  className="w-full px-4 py-3 pr-12 rounded-xl bg-white/[0.07] border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-60 shadow-lg shadow-blue-900/30 mt-2"
+            >
+              {loading ? (
+                <Loader2 className="animate-spin" size={20} />
+              ) : (
+                "Sign In"
+              )}
+            </button>
+          </form>
         </div>
-      </main>
+
+        <p className="text-center text-slate-600 text-xs mt-8">
+          © 2026 AM Business Automation. All rights reserved.
+        </p>
+      </div>
     </div>
   );
 }

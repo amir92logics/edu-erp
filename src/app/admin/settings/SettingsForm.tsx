@@ -79,7 +79,7 @@ export function SettingsForm({ settings }: { settings: any }) {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition-all disabled:opacity-50"
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-all disabled:opacity-50 shadow-sm shadow-blue-100"
                     >
                         {loading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
                         Save Profile
@@ -152,7 +152,7 @@ export function SettingsForm({ settings }: { settings: any }) {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition-all disabled:opacity-50"
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-all disabled:opacity-50 shadow-sm shadow-blue-100"
                     >
                         {loading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
                         Save Credentials

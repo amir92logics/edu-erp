@@ -1,5 +1,6 @@
 import { getStudents } from "@/app/actions/students";
-import { Plus, Search, Filter, Phone } from "lucide-react";
+import { getClasses } from "@/app/actions/classes";
+import { Plus, Search, Phone, Users, SlidersHorizontal, X } from "lucide-react";
 import Link from "next/link";
 import { DeleteStudentButton } from "./DeleteStudentButton";
 import { EditStudentModal } from "./EditStudentModal";
@@ -10,10 +11,16 @@ type StudentWithClass = Student & { class: Class | null };
 export default async function StudentsPage({
     searchParams,
 }: {
-    searchParams: { q?: string };
+    searchParams: Promise<{ q?: string; classId?: string }>;
 }) {
-    const query = searchParams.q || "";
-    const students = await getStudents(query);
+    const params = await searchParams;
+    const query = params.q || "";
+    const classId = params.classId || "";
+
+    const [students, classes] = await Promise.all([
+        getStudents(query, classId),
+        getClasses(),
+    ]);
 
     return (
         <div className="space-y-6">
@@ -32,25 +39,72 @@ export default async function StudentsPage({
             </div>
 
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                    <form className="relative w-96">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                        <input
-                            name="q"
-                            defaultValue={query}
-                            type="text"
-                            placeholder="Search by name, roll no or phone..."
-                            className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium"
-                        />
-                    </form>
+                {/* Search & Filter Bar */}
+                <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                    <form className="flex flex-1 items-center gap-3 flex-wrap" method="GET">
+                        {/* Search */}
+                        <div className="relative flex-1 min-w-[180px]">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
+                            <input
+                                name="q"
+                                defaultValue={query}
+                                type="text"
+                                placeholder="Search by name, roll no or phone..."
+                                className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium"
+                            />
+                        </div>
 
-                    <div className="flex items-center gap-2">
-                        <button className="flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium hover:bg-white bg-white transition-colors">
-                            <Filter size={16} />
-                            Filter
+                        {/* Class filter */}
+                        <div className="relative">
+                            <SlidersHorizontal className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
+                            <select
+                                name="classId"
+                                defaultValue={classId}
+                                className="pl-8 pr-8 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium appearance-none cursor-pointer"
+                            >
+                                <option value="">All Classes</option>
+                                {classes.map((cls) => (
+                                    <option key={cls.id} value={cls.id}>
+                                        {cls.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <button
+                            type="submit"
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 active:scale-95 transition-all whitespace-nowrap shadow-sm shadow-blue-100"
+                        >
+                            Search
                         </button>
-                    </div>
+
+                        {(query || classId) && (
+                            <Link
+                                href="/admin/students"
+                                className="flex items-center gap-1.5 px-3 py-2 text-sm text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors font-medium whitespace-nowrap"
+                            >
+                                <X size={14} /> Clear
+                            </Link>
+                        )}
+                    </form>
                 </div>
+
+                {/* Active filter pills */}
+                {(query || classId) && (
+                    <div className="px-4 py-2.5 bg-blue-50/50 border-b border-blue-100 flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Active filters:</span>
+                        {query && (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white text-blue-700 border border-blue-200 rounded-full text-xs font-semibold shadow-sm">
+                                <Search size={10} /> &quot;{query}&quot;
+                            </span>
+                        )}
+                        {classId && (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white text-purple-700 border border-purple-200 rounded-full text-xs font-semibold shadow-sm">
+                                <Users size={10} /> {classes.find(c => c.id === classId)?.name || "Class"}
+                            </span>
+                        )}
+                    </div>
+                )}
 
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
@@ -67,8 +121,20 @@ export default async function StudentsPage({
                         <tbody className="divide-y divide-slate-100">
                             {students.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-12 text-center text-slate-400 italic">
-                                        No students found.
+                                    <td colSpan={6} className="px-6 py-16 text-center">
+                                        <div className="flex flex-col items-center gap-3 opacity-50">
+                                            <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center">
+                                                <Users size={24} className="text-slate-400" />
+                                            </div>
+                                            <p className="text-slate-500 font-medium">
+                                                {query || classId ? "No students match the current filters." : "No students found."}
+                                            </p>
+                                            {(query || classId) && (
+                                                <Link href="/admin/students" className="text-xs text-blue-600 hover:underline font-semibold">
+                                                    Clear filters
+                                                </Link>
+                                            )}
+                                        </div>
                                     </td>
                                 </tr>
                             ) : (
@@ -119,11 +185,10 @@ export default async function StudentsPage({
                 </div>
 
                 <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between text-xs text-slate-500">
-                    <p>Showing {students.length} students</p>
-                    <div className="flex gap-1">
-                        <button className="px-3 py-1 border border-slate-200 rounded bg-white hover:bg-slate-50 disabled:opacity-50" disabled>Previous</button>
-                        <button className="px-3 py-1 border border-slate-200 rounded bg-white hover:bg-slate-50 disabled:opacity-50" disabled>Next</button>
-                    </div>
+                    <p>
+                        Showing <span className="font-bold text-slate-700">{students.length}</span> student{students.length !== 1 ? "s" : ""}
+                        {(query || classId) && <span className="text-blue-600 font-semibold"> (filtered)</span>}
+                    </p>
                 </div>
             </div>
         </div>

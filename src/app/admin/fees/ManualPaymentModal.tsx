@@ -86,7 +86,7 @@ export function ManualPaymentModal({ feeId, amount, studentName }: { feeId: stri
                         <button
                             disabled={loading}
                             type="submit"
-                            className="w-full py-4 bg-slate-900 text-white rounded-xl text-sm font-black uppercase tracking-widest hover:bg-slate-800 disabled:opacity-50 transition-all flex items-center justify-center gap-3 shadow-xl"
+                            className="w-full py-4 bg-blue-600 text-white rounded-xl text-sm font-black uppercase tracking-widest hover:bg-blue-700 disabled:opacity-50 transition-all flex items-center justify-center gap-3 shadow-xl shadow-blue-500/20"
                         >
                             {loading ? <Loader2 className="animate-spin" size={20} /> : "Finalize Receipt"}
                         </button>

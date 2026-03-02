@@ -21,19 +21,15 @@ export async function login(formData: z.infer<typeof LoginSchema>) {
         });
 
         if (!user) {
-            console.log(`Login failed: User not found - ${validated.email}`);
             return { error: "Invalid credentials" };
         }
 
         const passwordMatch = await bcrypt.compare(validated.password, user.password);
         if (!passwordMatch) {
-            console.log(`Login failed: Password mismatch for ${validated.email}`);
             return { error: "Invalid credentials" };
         }
 
-        console.log(`Login success: ${user.email} (${user.role})`);
-
-        // Check if school is active (if not super admin)
+        // Check if school account is active (non-super-admin only)
         if (user.role !== "SUPER_ADMIN" && user.school?.status === "SUSPENDED") {
             return { error: "Your school account is suspended. Please contact support." };
         }
@@ -48,7 +44,7 @@ export async function login(formData: z.infer<typeof LoginSchema>) {
         const cookieStore = await cookies();
         cookieStore.set("auth-token", token, {
             httpOnly: true,
-            secure: false, // Force false for local testing over HTTP
+            secure: process.env.NODE_ENV === "production",
             sameSite: "lax",
             maxAge: 60 * 60 * 24, // 1 day
             path: "/",
@@ -57,7 +53,10 @@ export async function login(formData: z.infer<typeof LoginSchema>) {
         return {
             success: true,
             role: user.role,
-            redirect: user.role === "SUPER_ADMIN" ? "/super-admin" : "/admin"
+            redirect:
+                user.role === "SUPER_ADMIN"
+                    ? "/super-admin/dashboard"
+                    : "/admin/dashboard",
         };
     } catch (error: any) {
         console.error("Login Error:", error);
@@ -67,6 +66,14 @@ export async function login(formData: z.infer<typeof LoginSchema>) {
 
 export async function logout() {
     const cookieStore = await cookies();
-    cookieStore.delete("auth-token");
+    // Delete the auth cookie with all the same attributes it was created with
+    cookieStore.set("auth-token", "", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 0,
+        path: "/",
+        expires: new Date(0),
+    });
     return { success: true };
 }

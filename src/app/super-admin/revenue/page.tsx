@@ -35,7 +35,7 @@ export default async function RevenuePage() {
                     <p className="text-slate-500 font-medium mt-1">Global transaction tracking and commission analytics.</p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <button className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-xl text-sm font-bold shadow-xl shadow-slate-900/10 hover:bg-slate-800 transition-all">
+                    <button className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl text-sm font-bold shadow-xl shadow-blue-500/10 hover:bg-blue-700 transition-all">
                         Financial Reports
                     </button>
                 </div>

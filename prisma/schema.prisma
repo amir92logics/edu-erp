@@ -66,6 +66,10 @@ model School {
   whatsappSentThisMonth Int               @default(0)
   whatsappMonthResetAt  DateTime          @default(now())
 
+  maxWhatsappPerDay     Int?              // null = unlimited
+  whatsappSentToday     Int               @default(0)
+  whatsappDayResetAt    DateTime          @default(now())
+
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
 
@@ -76,10 +80,45 @@ model School {
   transactions      Transaction[]
   announcements     Announcement[]
   whatsappSessions  WhatsAppSession[]
+  whatsappQueues    WhatsappQueue[]
   featureFlags      FeatureFlag[]
   auditLogs         AuditLog[]
 
   @@index([slug])
+}
+
+enum WhatsappQueueStatus {
+  PENDING
+  PROCESSING
+  SENT
+  FAILED
+  PAUSED
+}
+
+model WhatsappQueue {
+  id              String              @id @default(cuid())
+  schoolId        String
+  school          School              @relation(fields: [schoolId], references: [id])
+  
+  studentId       String?
+  student         Student?            @relation(fields: [studentId], references: [id])
+  
+  phoneNumber     String
+  message         String              @db.Text
+  status          WhatsappQueueStatus @default(PENDING)
+  
+  retryCount      Int                 @default(0)
+  errorMessage    String?             @db.Text
+  
+  scheduledAt     DateTime            @default(now())
+  sentAt          DateTime?
+  
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@index([schoolId])
+  @@index([status])
+  @@index([scheduledAt])
 }
 
 model User {
@@ -113,10 +152,12 @@ model Student {
   
   fees            Fee[]
   transactions    Transaction[]
+  whatsappQueues  WhatsappQueue[]
   
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
+  @@unique([schoolId, rollNumber]) // Enforce per-school roll number uniqueness
   @@index([schoolId])
   @@index([classId])
   @@index([parentPhone])

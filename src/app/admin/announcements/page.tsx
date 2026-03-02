@@ -37,7 +37,7 @@ export default async function AnnouncementsPage() {
                                 </div>
                                 <h3 className="text-lg font-bold text-slate-900">No Announcements Yet</h3>
                                 <p className="text-slate-500 text-sm mt-1 max-w-sm">Share your first update with students and parents to keep everyone informed.</p>
-                                <button className="mt-8 px-6 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-bold hover:bg-slate-800 transition-all">
+                                <button className="mt-8 px-6 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-all shadow-sm shadow-blue-100">
                                     Create First Announcement
                                 </button>
                             </>
