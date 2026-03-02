@@ -1,10 +1,12 @@
 "use client";
 
-import { Bell, LogOut, UserCircle, X, AlertTriangle, ShieldAlert } from "lucide-react";
+import { Bell, LogOut, UserCircle, X, AlertTriangle, ShieldAlert, Menu } from "lucide-react";
 import { useState, useTransition } from "react";
 import { logout } from "@/app/actions/auth";
+import { useSidebar } from "@/components/providers/SidebarProvider";
 
 function LogoutConfirmModal({
+    // ... (omitting for brevity)
     isOpen,
     onClose,
     onConfirm,
@@ -47,6 +49,7 @@ function LogoutConfirmModal({
 export function SuperAdminNavbar() {
     const [showModal, setShowModal] = useState(false);
     const [isPending, startTransition] = useTransition();
+    const { toggle } = useSidebar();
 
     function handleLogoutConfirm() {
         startTransition(async () => {
@@ -58,12 +61,19 @@ export function SuperAdminNavbar() {
     return (
         <>
             <LogoutConfirmModal isOpen={showModal} onClose={() => setShowModal(false)} onConfirm={handleLogoutConfirm} isPending={isPending} />
-            <header className="h-16 border-b border-slate-200 bg-white flex items-center justify-between px-10 sticky top-0 z-30">
+            <header className="h-16 border-b border-slate-200 bg-white flex items-center justify-between px-4 md:px-10 sticky top-0 z-30">
                 <div className="flex items-center gap-2 text-sm text-slate-500 font-medium font-sans">
-                    <ShieldAlert className="text-blue-600" size={18} />
-                    <span className="text-slate-900 font-bold">Platform Admin</span>
-                    <span className="text-slate-300">/</span>
-                    <span>Infrastructure</span>
+                    <button
+                        onClick={toggle}
+                        className="lg:hidden p-2 -ml-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
+                        aria-label="Toggle menu"
+                    >
+                        <Menu size={20} />
+                    </button>
+                    <ShieldAlert className="text-blue-600 shrink-0" size={18} />
+                    <span className="text-slate-900 font-bold hidden sm:inline">Platform Admin</span>
+                    <span className="text-slate-300 hidden sm:inline">/</span>
+                    <span className="truncate">Infrastructure</span>
                 </div>
 
                 <div className="flex items-center gap-6">

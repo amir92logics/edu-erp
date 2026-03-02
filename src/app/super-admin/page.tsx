@@ -42,12 +42,14 @@ export default async function SuperAdminDashboard() {
 
     return (
         <div className="space-y-10">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
                 <div>
-                    <h1 className="text-3xl font-black text-slate-900 tracking-tight">Platform Insights</h1>
+                    <h1 className="text-4xl font-black text-slate-900 tracking-tight">Platform Insights</h1>
                     <p className="text-slate-500 font-medium mt-1">Global performance metrics for EduPro SaaS network.</p>
                 </div>
-                <OnboardSchoolModal />
+                <div className="w-full sm:w-auto">
+                    <OnboardSchoolModal />
+                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">

@@ -38,10 +38,10 @@ export function GenerateFeesModal() {
         <>
             <button
                 onClick={() => setIsOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 active:scale-95 transition-all shadow-lg shadow-blue-200"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 sm:px-4 sm:py-2 bg-blue-600 text-white rounded-xl sm:rounded-lg text-sm font-bold shadow-lg shadow-blue-500/20 hover:bg-blue-700 active:scale-95 transition-all"
             >
                 <Wallet size={18} />
-                Generate Monthly Fees
+                <span>Generate Monthly Fees</span>
             </button>
 
             <Dialog open={isOpen} onOpenChange={setIsOpen}>

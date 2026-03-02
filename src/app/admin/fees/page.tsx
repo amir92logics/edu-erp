@@ -51,15 +51,15 @@ export default async function FeesPage({
 
     return (
         <div className="space-y-8">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900">Fee Management</h1>
-                    <p className="text-slate-500 text-sm">Monitor collections and generate monthly invoices.</p>
+                    <h1 className="text-3xl font-black text-slate-900 tracking-tight">Fee Management</h1>
+                    <p className="text-slate-500 font-medium mt-1">Monitor collections and generate monthly invoices.</p>
                 </div>
-                <div className="flex gap-3">
-                    <button className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg bg-white text-sm font-semibold hover:bg-slate-50 transition-all text-slate-700">
+                <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                    <button className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 border border-slate-200 rounded-xl bg-white text-sm font-bold text-slate-700 hover:bg-slate-50 transition-all active:scale-95 shadow-sm">
                         <Download size={18} />
-                        Export CSV
+                        <span>Export CSV</span>
                     </button>
                     <GenerateFeesModal />
                 </div>

@@ -24,40 +24,44 @@ export default async function ClassesPage({
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900 font-display">Classes</h1>
                     <p className="text-slate-500 text-sm">Define class structures and fee assignments.</p>
                 </div>
-                <CreateClassModal />
+                <div className="w-full sm:w-auto">
+                    <CreateClassModal />
+                </div>
             </div>
 
             {/* Search bar */}
-            <form method="GET" className="flex items-center gap-3">
-                <div className="relative flex-1 max-w-md">
+            <form method="GET" className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
                     <input
                         name="q"
                         defaultValue={params.q || ""}
                         type="text"
                         placeholder="Search by class name or teacher..."
-                        className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium shadow-sm"
+                        className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium shadow-sm h-11"
                     />
                 </div>
-                <button
-                    type="submit"
-                    className="px-4 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 active:scale-95 transition-all shadow-sm shadow-blue-100"
-                >
-                    Search
-                </button>
-                {query && (
-                    <Link
-                        href="/admin/classes"
-                        className="flex items-center gap-1.5 px-3 py-2.5 text-sm text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors font-medium"
+                <div className="flex gap-2">
+                    <button
+                        type="submit"
+                        className="flex-1 sm:flex-none px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 active:scale-95 transition-all shadow-md shadow-blue-500/10 h-11"
                     >
-                        <X size={14} /> Clear
-                    </Link>
-                )}
+                        Search
+                    </button>
+                    {query && (
+                        <Link
+                            href="/admin/classes"
+                            className="px-4 py-2.5 border border-slate-200 text-slate-500 hover:text-slate-900 hover:bg-slate-50 bg-white rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-1.5 h-11"
+                        >
+                            <X size={14} /> <span className="hidden sm:inline">Clear</span>
+                        </Link>
+                    )}
+                </div>
             </form>
 
             {query && (

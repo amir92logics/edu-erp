@@ -1,10 +1,12 @@
 "use client";
 
-import { Bell, LogOut, UserCircle, X, AlertTriangle } from "lucide-react";
+import { Bell, LogOut, UserCircle, X, AlertTriangle, Menu } from "lucide-react";
 import { useState, useTransition } from "react";
 import { logout } from "@/app/actions/auth";
+import { useSidebar } from "@/components/providers/SidebarProvider";
 
 function LogoutConfirmModal({
+    // ... (omitting for brevity in TargetContent matching)
     isOpen,
     onClose,
     onConfirm,
@@ -94,6 +96,8 @@ export function Navbar({ schoolName = "School Admin" }: { schoolName?: string })
         });
     }
 
+    const { toggle } = useSidebar();
+
     return (
         <>
             <LogoutConfirmModal
@@ -103,9 +107,17 @@ export function Navbar({ schoolName = "School Admin" }: { schoolName?: string })
                 isPending={isPending}
             />
 
-            <header className="h-16 border-b border-slate-200 bg-white flex items-center justify-between px-8 sticky top-0 z-30">
-                {/* Left: school name */}
+            <header className="h-16 border-b border-slate-200 bg-white flex items-center justify-between px-4 md:px-8 sticky top-0 z-30">
+                {/* Left: Menu toggle + school name */}
                 <div className="flex items-center gap-3">
+                    <button
+                        onClick={toggle}
+                        className="lg:hidden p-2 -ml-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
+                        aria-label="Toggle menu"
+                    >
+                        <Menu size={20} />
+                    </button>
+
                     <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center shadow-md shadow-blue-200 shrink-0">
                         <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
                             <path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" />

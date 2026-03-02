@@ -24,33 +24,33 @@ export default async function StudentsPage({
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900">Students</h1>
-                    <p className="text-slate-500 text-sm">Manage student registrations and profiles.</p>
+                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Students</h1>
+                    <p className="text-slate-500 text-sm font-medium">Manage student registrations and profiles.</p>
                 </div>
                 <Link
                     href="/admin/students/new"
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 active:scale-95 transition-all shadow-md shadow-blue-200"
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 sm:px-4 sm:py-2 bg-blue-600 text-white rounded-xl sm:rounded-lg text-sm font-bold shadow-lg shadow-blue-500/20 hover:bg-blue-700 active:scale-95 transition-all"
                 >
                     <Plus size={18} />
-                    Register Student
+                    <span>Register Student</span>
                 </Link>
             </div>
 
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 {/* Search & Filter Bar */}
-                <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                    <form className="flex flex-1 items-center gap-3 flex-wrap" method="GET">
+                <div className="p-4 border-b border-slate-100 bg-slate-50/50">
+                    <form className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3" method="GET">
                         {/* Search */}
-                        <div className="relative flex-1 min-w-[180px]">
+                        <div className="relative flex-1">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
                             <input
                                 name="q"
                                 defaultValue={query}
                                 type="text"
                                 placeholder="Search by name, roll no or phone..."
-                                className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium"
+                                className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium h-10"
                             />
                         </div>
 
@@ -60,7 +60,7 @@ export default async function StudentsPage({
                             <select
                                 name="classId"
                                 defaultValue={classId}
-                                className="pl-8 pr-8 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium appearance-none cursor-pointer"
+                                className="w-full pl-8 pr-10 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium appearance-none cursor-pointer h-10"
                             >
                                 <option value="">All Classes</option>
                                 {classes.map((cls) => (
@@ -69,23 +69,29 @@ export default async function StudentsPage({
                                     </option>
                                 ))}
                             </select>
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+                            </div>
                         </div>
 
-                        <button
-                            type="submit"
-                            className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 active:scale-95 transition-all whitespace-nowrap shadow-sm shadow-blue-100"
-                        >
-                            Search
-                        </button>
-
-                        {(query || classId) && (
-                            <Link
-                                href="/admin/students"
-                                className="flex items-center gap-1.5 px-3 py-2 text-sm text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors font-medium whitespace-nowrap"
+                        <div className="flex gap-2">
+                            <button
+                                type="submit"
+                                className="flex-1 lg:flex-none px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 active:scale-95 transition-all shadow-md shadow-blue-500/10 h-10"
                             >
-                                <X size={14} /> Clear
-                            </Link>
-                        )}
+                                Search
+                            </button>
+
+                            {(query || classId) && (
+                                <Link
+                                    href="/admin/students"
+                                    className="px-4 py-2 border border-slate-200 text-slate-500 hover:text-slate-900 hover:bg-slate-50 bg-white rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-1.5 h-10"
+                                >
+                                    <X size={14} />
+                                    <span className="hidden sm:inline">Clear</span>
+                                </Link>
+                            )}
+                        </div>
                     </form>
                 </div>
 

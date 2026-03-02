@@ -76,17 +76,17 @@ export default async function WhatsAppPage() {
                                 </div>
                             </div>
 
-                            <div className="p-6 bg-slate-900 rounded-2xl flex items-center justify-between gap-6 shadow-2xl shadow-slate-900/10">
-                                <div className="flex items-start gap-4">
-                                    <div className="p-2 bg-amber-400/10 text-amber-400 rounded-lg">
+                            <div className="p-6 bg-slate-900 rounded-3xl flex flex-col md:flex-row items-stretch md:items-center justify-between gap-6 shadow-2xl shadow-slate-900/10">
+                                <div className="flex items-start gap-4 flex-1">
+                                    <div className="p-2 bg-amber-400/10 text-amber-400 rounded-lg shrink-0">
                                         <AlertTriangle size={20} />
                                     </div>
                                     <div>
                                         <p className="text-xs font-black text-white uppercase tracking-widest">Compliance Check</p>
-                                        <p className="text-[10px] text-slate-400 font-medium leading-relaxed max-w-[300px] mt-1">Broadcasts must adhere to local anti-spam regulations. High report rates may result in session suspension.</p>
+                                        <p className="text-[10px] text-slate-400 font-medium leading-relaxed mt-1">Broadcasts must adhere to local anti-spam regulations. High report rates may result in session suspension.</p>
                                     </div>
                                 </div>
-                                <button className="px-8 py-3.5 bg-emerald-500 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/20 active:scale-95">
+                                <button className="w-full md:w-auto px-10 py-4 bg-emerald-500 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-emerald-400 transition-all shadow-xl shadow-emerald-500/20 active:scale-95 whitespace-nowrap">
                                     Push Notification
                                 </button>
                             </div>

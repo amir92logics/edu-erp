@@ -38,10 +38,10 @@ export function OnboardSchoolModal() {
         <>
             <button
                 onClick={() => setIsOpen(true)}
-                className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl text-sm font-bold shadow-xl shadow-blue-500/10 hover:bg-blue-700 transition-all active:scale-95"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-4 sm:py-3 bg-blue-600 text-white rounded-2xl sm:rounded-xl text-sm font-bold shadow-xl shadow-blue-500/10 hover:bg-blue-700 transition-all active:scale-95"
             >
                 <Plus size={20} />
-                Deploy New Institution
+                <span>Deploy New Institution</span>
             </button>
 
             <Dialog open={isOpen} onOpenChange={setIsOpen}>
