@@ -17,6 +17,7 @@ const OnboardSchoolSchema = z.object({
     adminPassword: z.string().min(8, "Password must be at least 8 characters"),
     subscriptionPlan: z.string().default("BASIC"),
     maxWhatsappPerMonth: z.number().int().optional().nullable(),
+    maxWhatsappPerDay: z.number().int().optional().nullable(),
     status: z.nativeEnum(SubscriptionStatus).default("TRIAL"),
 });
 
@@ -51,7 +52,8 @@ export async function onboardSchool(data: any) {
     // Convert status for Zod if it's a raw string from form
     const validated = OnboardSchoolSchema.parse({
         ...data,
-        maxWhatsappPerMonth: data.maxWhatsappPerMonth ? parseInt(data.maxWhatsappPerMonth) : null
+        maxWhatsappPerMonth: data.maxWhatsappPerMonth ? parseInt(data.maxWhatsappPerMonth) : null,
+        maxWhatsappPerDay: data.maxWhatsappPerDay ? parseInt(data.maxWhatsappPerDay) : null
     });
 
     // 1. Uniqueness Checks

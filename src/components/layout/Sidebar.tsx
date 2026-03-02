@@ -24,7 +24,7 @@ const menuItems = [
     { label: "Settings", href: "/admin/settings", icon: Settings },
 ];
 
-export function Sidebar({ plan }: { plan: string }) {
+export function Sidebar({ plan }: { plan: any }) {
     const pathname = usePathname();
 
     return (

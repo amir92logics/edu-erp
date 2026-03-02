@@ -91,7 +91,7 @@ export async function changePassword(
     const validated = ChangePasswordSchema.safeParse(formData);
 
     if (!validated.success) {
-        const firstError = validated.error.errors[0]?.message;
+        const firstError = validated.error.issues[0]?.message;
         return { success: false, error: firstError || "Validation failed." };
     }
 
