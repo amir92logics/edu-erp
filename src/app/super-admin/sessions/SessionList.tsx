@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Smartphone, ShieldAlert, Trash2, Zap, Search, Activity } from "lucide-react";
+import { Smartphone, ShieldAlert, Trash2, Zap, Search, Activity, ArrowUpRight, FileText } from "lucide-react";
+import Link from "next/link";
 import { terminateSchoolSession } from "@/app/actions/platform";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -69,8 +70,8 @@ export function SessionList({ initialSessions }: { initialSessions: any[] }) {
                                         <div className="flex items-center gap-3">
                                             <h3 className="text-xl font-black text-slate-900 tracking-tight">{school.name}</h3>
                                             <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${session?.status === 'CONNECTED' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
-                                                    session?.status === 'WAITING_FOR_SCAN' ? 'bg-amber-50 text-amber-600 border border-amber-100' :
-                                                        'bg-slate-100 text-slate-500 border border-slate-200'
+                                                session?.status === 'WAITING_FOR_SCAN' ? 'bg-amber-50 text-amber-600 border border-amber-100' :
+                                                    'bg-slate-100 text-slate-500 border border-slate-200'
                                                 }`}>
                                                 {session?.status || 'DISCONNECTED'}
                                             </span>
@@ -120,13 +121,31 @@ export function SessionList({ initialSessions }: { initialSessions: any[] }) {
                                 </div>
                             </div>
 
-                            <div className="mt-8 pt-6 border-t border-slate-50 flex items-center gap-3">
-                                <div className="p-1.5 bg-blue-50 text-blue-600 rounded-md">
-                                    <ShieldAlert size={14} />
+                            <div className="mt-8 pt-6 border-t border-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-1.5 bg-blue-50 text-blue-600 rounded-md">
+                                        <ShieldAlert size={14} />
+                                    </div>
+                                    <p className="text-[10px] font-bold text-slate-400 leading-none uppercase tracking-widest">
+                                        Management action will be logged in system audit trail.
+                                    </p>
                                 </div>
-                                <p className="text-[10px] font-bold text-slate-400 leading-none uppercase tracking-widest">
-                                    Management action will be logged in system audit trail.
-                                </p>
+                                <div className="flex items-center gap-4">
+                                    <Link
+                                        href={`/super-admin/audit?schoolId=${school.id}`}
+                                        className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-blue-600 flex items-center gap-1.5 transition-colors"
+                                    >
+                                        <FileText size={12} />
+                                        View Logs
+                                    </Link>
+                                    <Link
+                                        href={`/super-admin/schools?search=${school.slug}`}
+                                        className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-blue-600 flex items-center gap-1.5 transition-colors"
+                                    >
+                                        <ArrowUpRight size={12} />
+                                        Platform Page
+                                    </Link>
+                                </div>
                             </div>
                         </div>
                     );

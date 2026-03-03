@@ -84,8 +84,8 @@ export function WhatsAppStatus() {
                     </div>
                 )}
 
-                {isInitializing && !state?.qrCode && (
-                    <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] flex items-center justify-center">
+                {isInitializing && state?.qrCode && (
+                    <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] flex items-center justify-center animate-in fade-in duration-300">
                         <Loader2 size={32} className="animate-spin text-blue-600" />
                     </div>
                 )}

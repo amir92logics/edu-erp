@@ -8,6 +8,9 @@ import { MongoStore } from "wwebjs-mongo";
 const clients: Record<string, Client> = (global as { whatsappClients?: Record<string, Client> }).whatsappClients || {};
 (global as { whatsappClients?: Record<string, Client> }).whatsappClients = clients;
 
+// Prevention for multiple concurrent initializations
+const initializingSchools = new Set<string>();
+
 // Ensure MongoDB is connected for RemoteAuth if using MongoDB
 let storePromise: Promise<any> | null = null;
 async function getMongoStore() {
@@ -36,9 +39,14 @@ export async function getWhatsAppStatus(schoolId: string) {
 }
 
 export async function initializeWhatsApp(schoolId: string) {
-    // If a client already exists, destroy and recreate for a fresh start.
+    if (initializingSchools.has(schoolId)) {
+        console.log(`[WhatsApp] Skipping init for ${schoolId}. Initialization already in progress.`);
+        return { success: true, initializing: true };
+    }
+
+    // Clear client if it exists, to be safe.
     if (clients[schoolId]) {
-        console.log(`[WhatsApp] Existing client found for school ${schoolId}. Destroying for fresh start.`);
+        console.log(`[WhatsApp] Destroying existing client for school ${schoolId} for a fresh start.`);
         try {
             await clients[schoolId].destroy();
         } catch (e) {
@@ -47,6 +55,7 @@ export async function initializeWhatsApp(schoolId: string) {
         delete clients[schoolId];
     }
 
+    initializingSchools.add(schoolId);
     console.log(`[WhatsApp] Starting initialization for school: ${schoolId}. Node: ${process.version}, fetch: ${typeof fetch}`);
 
     // Set initial status to INITIALIZING in DB
@@ -58,10 +67,10 @@ export async function initializeWhatsApp(schoolId: string) {
 
     const isProduction = process.env.NODE_ENV === 'production';
 
-    // 🚀 We wrap the actual heavy-lifting in an async IIFE so we can return success immediately
+    // 🚀 Background process
     (async () => {
         try {
-            // 1. Get Mongo Store with a timeout to prevent hanging the background process
+            // 1. Get Mongo Store with a timeout
             const storePromise = getMongoStore();
             const store = await Promise.race([
                 storePromise,
@@ -94,7 +103,6 @@ export async function initializeWhatsApp(schoolId: string) {
 
             clients[schoolId] = client;
 
-            // Safety timeout for the entire initialization cycle (QR or Ready)
             let isCycleFinished = false;
             const cycleTimeout = setTimeout(async () => {
                 if (isCycleFinished) return;
@@ -131,14 +139,9 @@ export async function initializeWhatsApp(schoolId: string) {
                 });
             });
 
-            client.on('loading_screen', (percent, message) => {
-                console.log(`[WhatsApp] Loading for ${schoolId}: ${percent}% - ${message}`);
-            });
-
             client.on('auth_failure', async (msg) => {
                 isCycleFinished = true;
                 clearTimeout(cycleTimeout);
-                console.error(`[WhatsApp] AUTH FAILURE for ${schoolId}:`, msg);
                 await db.whatsAppSession.update({
                     where: { schoolId },
                     data: { status: "DISCONNECTED", qrCode: null }
@@ -154,8 +157,11 @@ export async function initializeWhatsApp(schoolId: string) {
                 });
                 delete clients[schoolId];
 
+                // Remove the lock since the client is dead
+                initializingSchools.delete(schoolId);
+
                 if (reason as any !== 'NAVIGATION' && reason !== 'LOGOUT') {
-                    console.log(`[WhatsApp] Retrying initialization for ${schoolId} in 30s...`);
+                    console.log(`[WhatsApp] Retrying in 30s...`);
                     setTimeout(() => initializeWhatsApp(schoolId), 30000);
                 }
             });
@@ -163,18 +169,21 @@ export async function initializeWhatsApp(schoolId: string) {
             console.log(`[WhatsApp] Calling client.initialize() for ${schoolId}...`);
             await client.initialize();
         } catch (err) {
-            console.error(`[WhatsApp] CRITICAL ERROR in background init for ${schoolId}:`, err);
+            console.error(`[WhatsApp] CRITICAL ERROR in bg init for ${schoolId}:`, err);
             await db.whatsAppSession.update({
                 where: { schoolId },
                 data: { status: "DISCONNECTED", qrCode: null }
             });
             if (clients[schoolId]) delete clients[schoolId];
+        } finally {
+            // Free the lock so another attempt can be made
+            initializingSchools.delete(schoolId);
         }
     })();
 
-    // 🚀 Return immediately so the server action doesn't timeout
     return { success: true };
 }
+
 
 
 
