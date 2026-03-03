@@ -8,18 +8,11 @@ import { revalidatePath } from "next/cache";
 export async function initWhatsAppSession() {
     const schoolId = await getRequiredSchoolId();
 
-    // 1. Mark status as loading
-    await db.whatsAppSession.upsert({
-        where: { schoolId },
-        update: { status: "INITIALIZING", qrCode: null },
-        create: { schoolId, status: "INITIALIZING" }
-    });
-
-    // 2. Clear old state if any from the background process
-    // (Actual initialization is handled by lib/whatsapp)
+    // The logic is moved inside initializeWhatsApp to handle backgrounding properly.
+    // We just trigger it and return success immediately so the UI can start polling.
     await initializeWhatsApp(schoolId);
 
-    revalidatePath("/admin");
+    revalidatePath("/admin/whatsapp");
     return { success: true };
 }
 

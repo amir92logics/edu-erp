@@ -36,8 +36,7 @@ export async function getWhatsAppStatus(schoolId: string) {
 }
 
 export async function initializeWhatsApp(schoolId: string) {
-    // If a client already exists, we should probably check its state.
-    // To be safe and ensure "Link New Session" always works, we'll destroy and recreate.
+    // If a client already exists, destroy and recreate for a fresh start.
     if (clients[schoolId]) {
         console.log(`[WhatsApp] Existing client found for school ${schoolId}. Destroying for fresh start.`);
         try {
@@ -58,123 +57,125 @@ export async function initializeWhatsApp(schoolId: string) {
     });
 
     const isProduction = process.env.NODE_ENV === 'production';
-    const store = await getMongoStore();
 
-    try {
-        const client = new Client({
-            authStrategy: store ? new RemoteAuth({
-                clientId: schoolId,
-                store: store,
-                backupSyncIntervalMs: 300000 // Backup every 5 mins
-            }) : undefined,
+    // 🚀 We wrap the actual heavy-lifting in an async IIFE so we can return success immediately
+    (async () => {
+        try {
+            // 1. Get Mongo Store with a timeout to prevent hanging the background process
+            const storePromise = getMongoStore();
+            const store = await Promise.race([
+                storePromise,
+                new Promise((_, reject) => setTimeout(() => reject(new Error("MongoStore Timeout")), 30000))
+            ]) as any;
 
-            puppeteer: {
-                headless: true,
-                executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || (isProduction ? '/usr/bin/chromium' : undefined),
-                handleSIGINT: false,
-                args: [
-                    '--no-sandbox',
-                    '--disable-setuid-sandbox',
-                    '--disable-dev-shm-usage',
-                    '--disable-accelerated-2d-canvas',
-                    '--no-first-run',
-                    '--no-zygote',
-                    '--disable-gpu',
-                    // '--single-process', // Removed as it can be unstable
-                    '--disable-web-security'
-                ]
-            }
-        });
+            const client = new Client({
+                authStrategy: store ? new RemoteAuth({
+                    clientId: schoolId,
+                    store: store,
+                    backupSyncIntervalMs: 300000 // Backup every 5 mins
+                }) : undefined,
 
-        clients[schoolId] = client;
+                puppeteer: {
+                    headless: true,
+                    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || (isProduction ? '/usr/bin/chromium' : undefined),
+                    handleSIGINT: false,
+                    args: [
+                        '--no-sandbox',
+                        '--disable-setuid-sandbox',
+                        '--disable-dev-shm-usage',
+                        '--disable-accelerated-2d-canvas',
+                        '--no-first-run',
+                        '--no-zygote',
+                        '--disable-gpu',
+                        '--disable-web-security'
+                    ]
+                }
+            });
 
-        // Safety timeout: if no QR/ready in 5 mins, set status to disconnected
-        let isTimedOut = false;
-        const timeout = setTimeout(async () => {
-            isTimedOut = true;
-            const currentSession = await db.whatsAppSession.findUnique({ where: { schoolId } });
-            if (currentSession?.status === "INITIALIZING" || currentSession?.status === "WAITING_FOR_SCAN") {
-                console.error(`[WhatsApp] Initialization TIMED OUT for ${schoolId}`);
+            clients[schoolId] = client;
+
+            // Safety timeout for the entire initialization cycle (QR or Ready)
+            let isCycleFinished = false;
+            const cycleTimeout = setTimeout(async () => {
+                if (isCycleFinished) return;
+                console.error(`[WhatsApp] Initialization CYCLE TIMED OUT for ${schoolId}`);
                 await db.whatsAppSession.update({
                     where: { schoolId },
                     data: { status: "DISCONNECTED", qrCode: null }
                 });
                 try { await client.destroy(); } catch (e) { }
                 delete clients[schoolId];
-            }
-        }, 300000);
+            }, 300000); // 5 minutes
 
-        client.on('qr', async (qr) => {
-            if (isTimedOut) return;
-            console.log(`[WhatsApp] QR Code RECEIVED for ${schoolId}`);
-            try {
-                const qrImage = await qrcode.toDataURL(qr);
-                await db.whatsAppSession.upsert({
+            client.on('qr', async (qr) => {
+                console.log(`[WhatsApp] QR Code RECEIVED for ${schoolId}`);
+                try {
+                    const qrImage = await qrcode.toDataURL(qr);
+                    await db.whatsAppSession.upsert({
+                        where: { schoolId },
+                        update: { qrCode: qrImage, status: "WAITING_FOR_SCAN" },
+                        create: { schoolId, qrCode: qrImage, status: "WAITING_FOR_SCAN" }
+                    });
+                } catch (err) {
+                    console.error("[WhatsApp] Error saving QR Code:", err);
+                }
+            });
+
+            client.on('ready', async () => {
+                isCycleFinished = true;
+                clearTimeout(cycleTimeout);
+                console.log(`[WhatsApp] Client is READY for school: ${schoolId}`);
+                await db.whatsAppSession.update({
                     where: { schoolId },
-                    update: { qrCode: qrImage, status: "WAITING_FOR_SCAN" },
-                    create: { schoolId, qrCode: qrImage, status: "WAITING_FOR_SCAN" }
+                    data: { status: "CONNECTED", qrCode: null }
                 });
-            } catch (err) {
-                console.error("[WhatsApp] Error saving QR Code:", err);
-            }
-        });
-
-        client.on('ready', async () => {
-            clearTimeout(timeout);
-            console.log(`[WhatsApp] Client is READY for school: ${schoolId}`);
-            await db.whatsAppSession.update({
-                where: { schoolId },
-                data: { status: "CONNECTED", qrCode: null }
             });
-        });
 
-        client.on('loading_screen', (percent, message) => {
-            console.log(`[WhatsApp] Loading for ${schoolId}: ${percent}% - ${message}`);
-        });
+            client.on('loading_screen', (percent, message) => {
+                console.log(`[WhatsApp] Loading for ${schoolId}: ${percent}% - ${message}`);
+            });
 
-        client.on('authenticated', () => {
-            console.log(`[WhatsApp] AUTHENTICATED for ${schoolId}`);
-        });
+            client.on('auth_failure', async (msg) => {
+                isCycleFinished = true;
+                clearTimeout(cycleTimeout);
+                console.error(`[WhatsApp] AUTH FAILURE for ${schoolId}:`, msg);
+                await db.whatsAppSession.update({
+                    where: { schoolId },
+                    data: { status: "DISCONNECTED", qrCode: null }
+                });
+                delete clients[schoolId];
+            });
 
-        client.on('auth_failure', async (msg) => {
-            clearTimeout(timeout);
-            console.error(`[WhatsApp] AUTH FAILURE for ${schoolId}:`, msg);
+            client.on('disconnected', async (reason) => {
+                console.log(`[WhatsApp] DISCONNECTED for ${schoolId}:`, reason);
+                await db.whatsAppSession.update({
+                    where: { schoolId },
+                    data: { status: "DISCONNECTED", qrCode: null }
+                });
+                delete clients[schoolId];
+
+                if (reason as any !== 'NAVIGATION' && reason !== 'LOGOUT') {
+                    console.log(`[WhatsApp] Retrying initialization for ${schoolId} in 30s...`);
+                    setTimeout(() => initializeWhatsApp(schoolId), 30000);
+                }
+            });
+
+            console.log(`[WhatsApp] Calling client.initialize() for ${schoolId}...`);
+            await client.initialize();
+        } catch (err) {
+            console.error(`[WhatsApp] CRITICAL ERROR in background init for ${schoolId}:`, err);
             await db.whatsAppSession.update({
                 where: { schoolId },
                 data: { status: "DISCONNECTED", qrCode: null }
             });
-            delete clients[schoolId];
-        });
+            if (clients[schoolId]) delete clients[schoolId];
+        }
+    })();
 
-        client.on('disconnected', async (reason) => {
-            console.log(`[WhatsApp] DISCONNECTED for ${schoolId}:`, reason);
-            await db.whatsAppSession.update({
-                where: { schoolId },
-                data: { status: "DISCONNECTED", qrCode: null }
-            });
-            delete clients[schoolId];
-
-            // Auto-reconnect after 30 seconds if it was an unexpected disconnect
-            if (reason as any !== 'NAVIGATION' && reason !== 'LOGOUT') {
-                console.log(`[WhatsApp] Retrying initialization for ${schoolId} in 30s...`);
-                setTimeout(() => initializeWhatsApp(schoolId), 30000);
-            }
-        });
-
-        console.log(`[WhatsApp] Initializing client for ${schoolId}...`);
-        await client.initialize();
-    } catch (err) {
-        console.error(`[WhatsApp] CRITICAL ERROR during initialization for ${schoolId}:`, err);
-        await db.whatsAppSession.update({
-            where: { schoolId },
-            data: { status: "DISCONNECTED", qrCode: null }
-        });
-        if (clients[schoolId]) delete clients[schoolId];
-        throw err;
-    }
-
+    // 🚀 Return immediately so the server action doesn't timeout
     return { success: true };
 }
+
 
 
 export async function sendWhatsAppMessage(schoolId: string, phone: string, message: string) {
@@ -220,4 +221,25 @@ export async function sendWhatsAppMessage(schoolId: string, phone: string, messa
         console.error("WhatsApp Send Error:", err);
         return { success: false, error: "Push failure. Peer is offline or session expired." };
     }
+}
+
+export async function logoutWhatsApp(schoolId: string) {
+    console.log(`[WhatsApp] Forcefully logging out school: ${schoolId}`);
+
+    if (clients[schoolId]) {
+        try {
+            await clients[schoolId].logout();
+            await clients[schoolId].destroy();
+        } catch (e) {
+            console.error(`[WhatsApp] Error during logout/destroy for ${schoolId}:`, e);
+        }
+        delete clients[schoolId];
+    }
+
+    // Clear session from database
+    await db.whatsAppSession.deleteMany({
+        where: { schoolId }
+    });
+
+    return { success: true };
 }

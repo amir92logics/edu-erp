@@ -20,6 +20,7 @@ import { logout } from "@/app/actions/auth";
 const superAdminMenuItems = [
     { label: "Dashboard", href: "/super-admin", icon: BarChart3 },
     { label: "Partner Schools", href: "/super-admin/schools", icon: School },
+    { label: "Active Sessions", href: "/super-admin/sessions", icon: Activity },
     { label: "Revenue & Billing", href: "/super-admin/revenue", icon: CreditCard },
     { label: "System Audit", href: "/super-admin/audit", icon: Activity },
     { label: "Platform Settings", href: "/super-admin/settings", icon: Settings },

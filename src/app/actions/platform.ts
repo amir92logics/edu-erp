@@ -8,6 +8,7 @@ import bcrypt from "bcryptjs";
 import { getRequiredSession } from "@/lib/session";
 import { createAuditLog } from "@/lib/audit";
 import { getPlanDefaults } from "@/lib/plan-config";
+import { logoutWhatsApp } from "@/lib/whatsapp";
 
 const OnboardSchoolSchema = z.object({
     name: z.string().min(2, "School name is too short"),
@@ -133,5 +134,37 @@ export async function toggleSchoolStatus(schoolId: string, status: SubscriptionS
 
     revalidatePath("/super-admin/health");
     revalidatePath("/super-admin/schools");
+    return { success: true };
+}
+
+export async function getSchoolSessions() {
+    await getRequiredSession(); // Ensure Super Admin
+
+    return await db.school.findMany({
+        where: {
+            whatsappSessions: {
+                some: {}
+            }
+        },
+        include: {
+            whatsappSessions: true
+        }
+    });
+}
+
+export async function terminateSchoolSession(schoolId: string) {
+    const session = await getRequiredSession();
+
+    await logoutWhatsApp(schoolId);
+
+    await createAuditLog({
+        userId: session.userId,
+        action: "TERMINATE_WHATSAPP_SESSION",
+        entityType: "SCHOOL",
+        entityId: schoolId,
+        metadata: { forced: true }
+    });
+
+    revalidatePath("/super-admin/sessions");
     return { success: true };
 }
