@@ -68,10 +68,17 @@ export function WhatsAppStatus() {
                 </div>
                 <h3 className="font-bold text-slate-900">Scan Required</h3>
                 <p className="text-xs text-slate-500 mt-1 leading-relaxed">Open WhatsApp &gt; Linked Devices &gt; Link a Device.</p>
-                <div className="mt-4 px-3 py-1.5 bg-blue-50 rounded-full flex items-center gap-2">
+                <div className="mt-4 px-3 py-1.5 bg-blue-50 rounded-full flex items-center gap-2 mb-6">
                     <Loader2 className="animate-spin text-blue-600" size={14} />
                     <span className="text-[10px] font-bold text-blue-700">Waiting for Authentication...</span>
                 </div>
+                <button
+                    disabled={loading}
+                    onClick={handleInit}
+                    className="w-full py-2.5 border-2 border-slate-200 text-slate-500 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all"
+                >
+                    {loading ? "Cancelling..." : "Cancel & Retry"}
+                </button>
             </div>
         );
     }

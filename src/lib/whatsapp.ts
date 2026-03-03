@@ -36,15 +36,21 @@ export async function getWhatsAppStatus(schoolId: string) {
 }
 
 export async function initializeWhatsApp(schoolId: string) {
+    // If a client already exists, we should probably check its state.
+    // To be safe and ensure "Link New Session" always works, we'll destroy and recreate.
     if (clients[schoolId]) {
-        console.log(`[WhatsApp] Skipping: client already exists for school ${schoolId}`);
-        // If already connected, just return. If initialization failed previously, we might need a retry button logic.
-        return { success: true };
+        console.log(`[WhatsApp] Existing client found for school ${schoolId}. Destroying for fresh start.`);
+        try {
+            await clients[schoolId].destroy();
+        } catch (e) {
+            console.error(`[WhatsApp] Error destroying existing client:`, e);
+        }
+        delete clients[schoolId];
     }
 
-    console.log(`[WhatsApp] Starting production initialization for school: ${schoolId}`);
+    console.log(`[WhatsApp] Starting initialization for school: ${schoolId}. Node: ${process.version}, fetch: ${typeof fetch}`);
 
-    // Set initial status to INITIALIZING in DB so timeout logic and UI can track it
+    // Set initial status to INITIALIZING in DB
     await db.whatsAppSession.upsert({
         where: { schoolId },
         update: { status: "INITIALIZING", qrCode: null },
@@ -54,119 +60,122 @@ export async function initializeWhatsApp(schoolId: string) {
     const isProduction = process.env.NODE_ENV === 'production';
     const store = await getMongoStore();
 
-    const client = new Client({
-        authStrategy: store ? new RemoteAuth({
-            clientId: schoolId,
-            store: store,
-            backupSyncIntervalMs: 300000 // Backup every 5 mins
-        }) : undefined, // Fallback to LocalAuth if no MongoDB (dev only)
+    try {
+        const client = new Client({
+            authStrategy: store ? new RemoteAuth({
+                clientId: schoolId,
+                store: store,
+                backupSyncIntervalMs: 300000 // Backup every 5 mins
+            }) : undefined,
 
-        webVersionCache: {
-            type: 'remote',
-            remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-js/main/dist/wppconnect-wa.js'
-        },
-        puppeteer: {
-            headless: true,
-            executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || (isProduction ? '/usr/bin/chromium' : undefined),
-            handleSIGINT: false, // Prevent crashes on app restarts
-            args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-accelerated-2d-canvas',
-                '--no-first-run',
-                '--no-zygote',
-                '--disable-gpu',
-                '--single-process', // Sometimes helps in Docker/Railway
-                '--disable-web-security'
-            ]
-        }
-    });
+            puppeteer: {
+                headless: true,
+                executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || (isProduction ? '/usr/bin/chromium' : undefined),
+                handleSIGINT: false,
+                args: [
+                    '--no-sandbox',
+                    '--disable-setuid-sandbox',
+                    '--disable-dev-shm-usage',
+                    '--disable-accelerated-2d-canvas',
+                    '--no-first-run',
+                    '--no-zygote',
+                    '--disable-gpu',
+                    // '--single-process', // Removed as it can be unstable
+                    '--disable-web-security'
+                ]
+            }
+        });
 
-    clients[schoolId] = client;
+        clients[schoolId] = client;
 
-    // Safety timeout: if no QR/ready in 2 mins, set status to disconnected
-    const timeout = setTimeout(async () => {
-        const currentSession = await db.whatsAppSession.findUnique({ where: { schoolId } });
-        if (currentSession?.status === "INITIALIZING") {
-            console.error(`[WhatsApp] Initialization TIMED OUT for ${schoolId}`);
+        // Safety timeout: if no QR/ready in 5 mins, set status to disconnected
+        let isTimedOut = false;
+        const timeout = setTimeout(async () => {
+            isTimedOut = true;
+            const currentSession = await db.whatsAppSession.findUnique({ where: { schoolId } });
+            if (currentSession?.status === "INITIALIZING" || currentSession?.status === "WAITING_FOR_SCAN") {
+                console.error(`[WhatsApp] Initialization TIMED OUT for ${schoolId}`);
+                await db.whatsAppSession.update({
+                    where: { schoolId },
+                    data: { status: "DISCONNECTED", qrCode: null }
+                });
+                try { await client.destroy(); } catch (e) { }
+                delete clients[schoolId];
+            }
+        }, 300000);
+
+        client.on('qr', async (qr) => {
+            if (isTimedOut) return;
+            console.log(`[WhatsApp] QR Code RECEIVED for ${schoolId}`);
+            try {
+                const qrImage = await qrcode.toDataURL(qr);
+                await db.whatsAppSession.upsert({
+                    where: { schoolId },
+                    update: { qrCode: qrImage, status: "WAITING_FOR_SCAN" },
+                    create: { schoolId, qrCode: qrImage, status: "WAITING_FOR_SCAN" }
+                });
+            } catch (err) {
+                console.error("[WhatsApp] Error saving QR Code:", err);
+            }
+        });
+
+        client.on('ready', async () => {
+            clearTimeout(timeout);
+            console.log(`[WhatsApp] Client is READY for school: ${schoolId}`);
             await db.whatsAppSession.update({
                 where: { schoolId },
-                data: { status: "DISCONNECTED" }
+                data: { status: "CONNECTED", qrCode: null }
             });
-            try { await client.destroy(); } catch (e) { }
-            delete clients[schoolId];
-        }
-    }, 300000); // Increased to 5 mins for production first-run
+        });
 
-    client.on('qr', async (qr) => {
-        clearTimeout(timeout);
-        console.log(`[WhatsApp] QR Code RECEIVED for ${schoolId}`);
-        try {
-            const qrImage = await qrcode.toDataURL(qr);
-            await db.whatsAppSession.upsert({
+        client.on('loading_screen', (percent, message) => {
+            console.log(`[WhatsApp] Loading for ${schoolId}: ${percent}% - ${message}`);
+        });
+
+        client.on('authenticated', () => {
+            console.log(`[WhatsApp] AUTHENTICATED for ${schoolId}`);
+        });
+
+        client.on('auth_failure', async (msg) => {
+            clearTimeout(timeout);
+            console.error(`[WhatsApp] AUTH FAILURE for ${schoolId}:`, msg);
+            await db.whatsAppSession.update({
                 where: { schoolId },
-                update: { qrCode: qrImage, status: "WAITING_FOR_SCAN" },
-                create: { schoolId, qrCode: qrImage, status: "WAITING_FOR_SCAN" }
+                data: { status: "DISCONNECTED", qrCode: null }
             });
-        } catch (err) {
-            console.error("[WhatsApp] Error saving QR Code:", err);
-        }
-    });
-
-    client.on('ready', async () => {
-        clearTimeout(timeout);
-        console.log(`[WhatsApp] Client is READY for school: ${schoolId}`);
-        await db.whatsAppSession.update({
-            where: { schoolId },
-            data: { status: "CONNECTED", qrCode: null }
+            delete clients[schoolId];
         });
-    });
 
-    client.on('remote_session_saved', () => {
-        console.log(`[WhatsApp] Session SAVED to MongoDB for ${schoolId}`);
-    });
+        client.on('disconnected', async (reason) => {
+            console.log(`[WhatsApp] DISCONNECTED for ${schoolId}:`, reason);
+            await db.whatsAppSession.update({
+                where: { schoolId },
+                data: { status: "DISCONNECTED", qrCode: null }
+            });
+            delete clients[schoolId];
 
-    client.on('authenticated', () => {
-        console.log(`[WhatsApp] AUTHENTICATED for ${schoolId}`);
-    });
+            // Auto-reconnect after 30 seconds if it was an unexpected disconnect
+            if (reason !== 'NAVIGATION') {
+                console.log(`[WhatsApp] Retrying initialization for ${schoolId} in 30s...`);
+                setTimeout(() => initializeWhatsApp(schoolId), 30000);
+            }
+        });
 
-    client.on('auth_failure', async (msg) => {
-        clearTimeout(timeout);
-        console.error(`[WhatsApp] AUTH FAILURE for ${schoolId}:`, msg);
+        console.log(`[WhatsApp] Initializing client for ${schoolId}...`);
+        await client.initialize();
+    } catch (err) {
+        console.error(`[WhatsApp] CRITICAL ERROR during initialization for ${schoolId}:`, err);
         await db.whatsAppSession.update({
             where: { schoolId },
             data: { status: "DISCONNECTED", qrCode: null }
         });
-        delete clients[schoolId];
-    });
-
-    client.on('disconnected', async (reason) => {
-        console.log(`[WhatsApp] DISCONNECTED for ${schoolId}:`, reason);
-        await db.whatsAppSession.update({
-            where: { schoolId },
-            data: { status: "DISCONNECTED", qrCode: null }
-        });
-        delete clients[schoolId];
-
-        // 🚀 Auto-reconnect after 10 seconds if disconnected silently
-        console.log(`[WhatsApp] Retrying initialization for ${schoolId} in 10s...`);
-        setTimeout(() => initializeWhatsApp(schoolId), 10000);
-    });
-
-    console.log(`[WhatsApp] Spawning client.initialize() for ${schoolId}...`);
-    client.initialize().catch(async (err) => {
-        clearTimeout(timeout);
-        console.error("[WhatsApp] CRITICAL INIT ERROR:", err);
-        await db.whatsAppSession.update({
-            where: { schoolId },
-            data: { status: "DISCONNECTED" }
-        });
-        delete clients[schoolId];
-    });
+        if (clients[schoolId]) delete clients[schoolId];
+        throw err;
+    }
 
     return { success: true };
 }
+
 
 export async function sendWhatsAppMessage(schoolId: string, phone: string, message: string) {
     // Ensure client is initialized
