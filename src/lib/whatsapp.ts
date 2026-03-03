@@ -3,6 +3,8 @@ import { db } from "./db";
 import qrcode from "qrcode";
 import mongoose from "mongoose";
 import { MongoStore } from "wwebjs-mongo";
+import fs from "fs/promises";
+import path from "path";
 
 // Global cache for WhatsApp clients to persist across HMR in dev
 const clients: Record<string, Client> = (global as { whatsappClients?: Record<string, Client> }).whatsappClients || {};
@@ -15,17 +17,27 @@ const initializingSchools = new Set<string>();
 let storePromise: Promise<any> | null = null;
 async function getMongoStore() {
     if (!process.env.MONGODB_URI) {
-        console.warn("[WhatsApp] MONGODB_URI not found. RemoteAuth may fail in production.");
+        console.warn("[WhatsApp] MONGODB_URI not found.");
         return null;
     }
 
     if (!storePromise) {
         storePromise = (async () => {
-            // Check if already connected to avoid re-connecting
-            if (mongoose.connection.readyState === 0) {
-                await mongoose.connect(process.env.MONGODB_URI!);
+            try {
+                if (mongoose.connection.readyState === 0) {
+                    console.log("[WhatsApp] Connecting to MongoDB Store...");
+                    await mongoose.connect(process.env.MONGODB_URI!, {
+                        serverSelectionTimeoutMS: 15000,
+                        connectTimeoutMS: 15000,
+                    });
+                }
+                console.log("[WhatsApp] MongoDB Store Connected.");
+                return new MongoStore({ mongoose: mongoose });
+            } catch (err) {
+                console.error("[WhatsApp] Failed to connect to MongoDB Store:", err);
+                storePromise = null; // Allow retry
+                return null;
             }
-            return new MongoStore({ mongoose: mongoose });
         })();
     }
     return storePromise;
@@ -55,6 +67,16 @@ export async function initializeWhatsApp(schoolId: string) {
         delete clients[schoolId];
     }
 
+    // 🚀 CLEANUP: Remove local session directory to force fresh sync from Mongo
+    // This prevents "Browser already running" or "Storage corrupted" errors
+    const sessionPath = path.join(process.cwd(), '.wwebjs_auth', `RemoteAuth-${schoolId}`);
+    try {
+        await fs.rm(sessionPath, { recursive: true, force: true });
+        console.log(`[WhatsApp] Local session directory purged for ${schoolId}`);
+    } catch (e) {
+        // Directory might not exist, that's fine
+    }
+
     initializingSchools.add(schoolId);
     console.log(`[WhatsApp] Starting initialization for school: ${schoolId}. Node: ${process.version}, fetch: ${typeof fetch}`);
 
@@ -81,8 +103,17 @@ export async function initializeWhatsApp(schoolId: string) {
                 authStrategy: store ? new RemoteAuth({
                     clientId: schoolId,
                     store: store,
-                    backupSyncIntervalMs: 300000 // Backup every 5 mins
+                    backupSyncIntervalMs: 300000, // Backup every 5 mins
+                    dataPath: './.wwebjs_auth'
                 }) : undefined,
+
+                webVersion: '2.3000.1018903251',
+                webVersionCache: {
+                    type: 'remote',
+                    remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.3000.1018903251.html'
+                },
+
+                authTimeoutMs: 60000, // 60s timeout for store retrieval
 
                 puppeteer: {
                     headless: true,
@@ -129,6 +160,14 @@ export async function initializeWhatsApp(schoolId: string) {
                 }
             });
 
+            client.on('authenticated', () => {
+                console.log(`[WhatsApp] AUTHENTICATED for ${schoolId}`);
+            });
+
+            client.on('remote_session_saved', () => {
+                console.log(`[WhatsApp] REMOTE SESSION SYNCED to Mongo for ${schoolId}`);
+            });
+
             client.on('ready', async () => {
                 isCycleFinished = true;
                 clearTimeout(cycleTimeout);
@@ -142,6 +181,7 @@ export async function initializeWhatsApp(schoolId: string) {
             client.on('auth_failure', async (msg) => {
                 isCycleFinished = true;
                 clearTimeout(cycleTimeout);
+                console.error(`[WhatsApp] AUTH FAILURE for ${schoolId}:`, msg);
                 await db.whatsAppSession.update({
                     where: { schoolId },
                     data: { status: "DISCONNECTED", qrCode: null }
@@ -151,17 +191,20 @@ export async function initializeWhatsApp(schoolId: string) {
 
             client.on('disconnected', async (reason) => {
                 console.log(`[WhatsApp] DISCONNECTED for ${schoolId}:`, reason);
-                await db.whatsAppSession.update({
-                    where: { schoolId },
-                    data: { status: "DISCONNECTED", qrCode: null }
-                });
-                delete clients[schoolId];
 
-                // Remove the lock since the client is dead
+                // Only mark as disconnected in DB if it's a real logout or terminal disconnect
+                if (reason === 'LOGOUT' || reason === 'NAVIGATION') {
+                    await db.whatsAppSession.update({
+                        where: { schoolId },
+                        data: { status: "DISCONNECTED", qrCode: null }
+                    });
+                }
+
+                delete clients[schoolId];
                 initializingSchools.delete(schoolId);
 
                 if (reason as any !== 'NAVIGATION' && reason !== 'LOGOUT') {
-                    console.log(`[WhatsApp] Retrying in 30s...`);
+                    console.log(`[WhatsApp] Attempting reconnect for ${schoolId} in 30s...`);
                     setTimeout(() => initializeWhatsApp(schoolId), 30000);
                 }
             });

@@ -180,7 +180,7 @@ export default async function StudentsPage({
                                         <td className="px-6 py-4">
                                             <div className="flex justify-center gap-2">
                                                 <EditStudentModal student={student} />
-                                                <DeleteStudentButton studentId={student.id} />
+                                                {/* <DeleteStudentButton studentId={student.id} /> */}
                                             </div>
                                         </td>
                                     </tr>
