@@ -64,6 +64,7 @@ export async function updateSchoolLimits(schoolId: string, limits: {
     maxClasses: number | null;
     maxStudents: number | null;
     maxWhatsappPerMonth: number | null;
+    isWhatsAppApproved?: boolean;
 }) {
     await db.school.update({
         where: { id: schoolId },
@@ -71,6 +72,7 @@ export async function updateSchoolLimits(schoolId: string, limits: {
             maxClasses: limits.maxClasses,
             maxStudents: limits.maxStudents,
             maxWhatsappPerMonth: limits.maxWhatsappPerMonth,
+            isWhatsAppApproved: limits.isWhatsAppApproved,
         }
     });
 

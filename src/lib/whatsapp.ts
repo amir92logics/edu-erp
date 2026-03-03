@@ -193,7 +193,7 @@ export async function initializeWhatsApp(schoolId: string) {
                 console.log(`[WhatsApp] DISCONNECTED for ${schoolId}:`, reason);
 
                 // Only mark as disconnected in DB if it's a real logout or terminal disconnect
-                if (reason === 'LOGOUT' || reason === 'NAVIGATION') {
+                if (reason as any === 'LOGOUT' || reason as any === 'NAVIGATION') {
                     await db.whatsAppSession.update({
                         where: { schoolId },
                         data: { status: "DISCONNECTED", qrCode: null }

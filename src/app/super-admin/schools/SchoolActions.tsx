@@ -25,6 +25,7 @@ interface SchoolActionsProps {
         maxClasses: number | null;
         maxStudents: number | null;
         maxWhatsappPerMonth: number | null;
+        isWhatsAppApproved: boolean;
         _count: { classes: number; students: number };
     };
 }

@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Settings2, Loader2, Hash } from "lucide-react";
+import { Settings2, Loader2, Hash, Zap } from "lucide-react";
 import { updateSchoolLimits } from "@/app/actions/quota";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 interface SetLimitsModalProps {
     school: {
@@ -13,6 +13,7 @@ interface SetLimitsModalProps {
         maxClasses: number | null;
         maxStudents: number | null;
         maxWhatsappPerMonth: number | null;
+        isWhatsAppApproved: boolean;
         _count: { classes: number; students: number };
     };
 }
@@ -24,6 +25,7 @@ export function SetLimitsModal({ school }: SetLimitsModalProps) {
     const [maxClasses, setMaxClasses] = useState(school.maxClasses?.toString() ?? "");
     const [maxStudents, setMaxStudents] = useState(school.maxStudents?.toString() ?? "");
     const [maxWhatsapp, setMaxWhatsapp] = useState(school.maxWhatsappPerMonth?.toString() ?? "");
+    const [isWhatsAppApproved, setIsWhatsAppApproved] = useState(school.isWhatsAppApproved);
 
     async function handleSave() {
         setLoading(true);
@@ -32,6 +34,7 @@ export function SetLimitsModal({ school }: SetLimitsModalProps) {
                 maxClasses: maxClasses === "" ? null : Number(maxClasses),
                 maxStudents: maxStudents === "" ? null : Number(maxStudents),
                 maxWhatsappPerMonth: maxWhatsapp === "" ? null : Number(maxWhatsapp),
+                isWhatsAppApproved,
             });
             toast.success("Quota limits updated!");
             setIsOpen(false);
@@ -108,7 +111,6 @@ export function SetLimitsModal({ school }: SetLimitsModalProps) {
 
             <Dialog open={isOpen} onOpenChange={setIsOpen}>
                 <DialogContent className="max-w-md p-0">
-                    {/* Header */}
                     <div className="bg-gradient-to-br from-slate-900 to-blue-900 p-6 text-white relative overflow-hidden">
                         <div className="absolute inset-0 opacity-10">
                             <div className="absolute -top-6 -right-6 w-32 h-32 bg-blue-400 rounded-full blur-2xl" />
@@ -155,6 +157,26 @@ export function SetLimitsModal({ school }: SetLimitsModalProps) {
                                     onChange={setMaxWhatsapp}
                                     used={0}
                                 />
+                            </div>
+                            <div className="pt-5 pb-2">
+                                <div className="flex items-center justify-between p-4 bg-blue-50/50 border border-blue-100/50 rounded-2xl">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`p-2 rounded-lg ${isWhatsAppApproved ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
+                                            <Zap size={18} />
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-black text-slate-800 uppercase tracking-widest">WhatsApp Gateway</p>
+                                            <p className="text-[10px] text-slate-500 font-medium">Allow this school to send automated notifications.</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsWhatsAppApproved(!isWhatsAppApproved)}
+                                        className={`w-12 h-6 rounded-full transition-all relative ${isWhatsAppApproved ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                                    >
+                                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${isWhatsAppApproved ? 'left-7' : 'left-1'}`} />
+                                    </button>
+                                </div>
                             </div>
                         </div>
 

@@ -81,6 +81,7 @@ export async function onboardSchool(data: any) {
                     subscriptionPlan: validated.subscriptionPlan,
                     maxWhatsappPerMonth: validated.maxWhatsappPerMonth,
                     maxWhatsappPerDay: maxWhatsappPerDay,
+                    isWhatsAppApproved: true,
                     status: validated.status,
                     trialEndsAt: validated.status === "TRIAL" ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : null,
                 },
