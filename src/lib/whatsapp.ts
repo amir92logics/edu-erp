@@ -155,7 +155,7 @@ export async function initializeWhatsApp(schoolId: string) {
             delete clients[schoolId];
 
             // Auto-reconnect after 30 seconds if it was an unexpected disconnect
-            if (reason !== 'NAVIGATION') {
+            if (reason as any !== 'NAVIGATION' && reason !== 'LOGOUT') {
                 console.log(`[WhatsApp] Retrying initialization for ${schoolId} in 30s...`);
                 setTimeout(() => initializeWhatsApp(schoolId), 30000);
             }
