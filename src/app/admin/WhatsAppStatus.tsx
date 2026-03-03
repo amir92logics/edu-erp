@@ -46,7 +46,7 @@ export function WhatsAppStatus() {
 
     if (state?.status === "CONNECTED") {
         return (
-            <div className="bg-emerald-50 p-8 rounded-2xl border border-emerald-100 flex flex-col items-center justify-center text-center">
+            <div className="bg-emerald-50 p-8 rounded-2xl border border-emerald-100 flex flex-col items-center justify-center text-center animate-in fade-in duration-500">
                 <div className="w-16 h-16 bg-white border border-emerald-200 rounded-full flex items-center justify-center mb-4 shadow-sm text-emerald-600">
                     <CheckCircle2 size={32} />
                 </div>
@@ -60,51 +60,61 @@ export function WhatsAppStatus() {
         );
     }
 
-    if (state?.status === "WAITING_FOR_SCAN" && state.qrCode) {
-        return (
-            <div className="bg-white p-8 rounded-2xl border-2 border-dashed border-blue-200 flex flex-col items-center justify-center text-center">
-                <div className="bg-slate-50 p-2 rounded-xl mb-4">
+    const isInitializing = state?.status === "INITIALIZING" || loading;
+
+    return (
+        <div className="bg-white p-8 rounded-2xl border-2 border-dashed border-blue-200 flex flex-col items-center justify-center text-center animate-in fade-in duration-500">
+            <div className="bg-slate-50 p-2 rounded-xl mb-4 min-w-[192px] min-h-[192px] flex items-center justify-center border border-slate-100">
+                {state?.qrCode ? (
                     <img src={state.qrCode} alt="WhatsApp QR" className="w-48 h-48" />
-                </div>
-                <h3 className="font-bold text-slate-900">Scan Required</h3>
-                <p className="text-xs text-slate-500 mt-1 leading-relaxed">Open WhatsApp &gt; Linked Devices &gt; Link a Device.</p>
+                ) : (
+                    <div className="w-48 h-48 flex flex-col items-center justify-center text-slate-300">
+                        {isInitializing ? (
+                            <Loader2 size={48} className="animate-spin text-blue-500" />
+                        ) : (
+                            <QrCode size={48} />
+                        )}
+                        <p className="text-[10px] font-black uppercase tracking-widest mt-4">
+                            {isInitializing ? "Generating..." : "Ready to Link"}
+                        </p>
+                    </div>
+                )}
+            </div>
+
+            <h3 className="font-bold text-slate-900">
+                {state?.status === "WAITING_FOR_SCAN" ? "Scan Required" : "Setup Gateway"}
+            </h3>
+            <p className="text-xs text-slate-500 mt-1 leading-relaxed max-w-[200px]">
+                {state?.status === "WAITING_FOR_SCAN"
+                    ? "Open WhatsApp > Linked Devices > Link a Device."
+                    : "Initialize a new secure instance to start broadcasting."}
+            </p>
+
+            {state?.status === "WAITING_FOR_SCAN" && !isInitializing && (
                 <div className="mt-4 px-3 py-1.5 bg-blue-50 rounded-full flex items-center gap-2 mb-6">
                     <Loader2 className="animate-spin text-blue-600" size={14} />
                     <span className="text-[10px] font-bold text-blue-700">Waiting for Authentication...</span>
                 </div>
-                <button
-                    disabled={loading}
-                    onClick={handleInit}
-                    className="w-full py-2.5 border-2 border-slate-200 text-slate-500 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all"
-                >
-                    {loading ? "Cancelling..." : "Cancel & Retry"}
-                </button>
-            </div>
-        );
-    }
+            )}
 
-    return (
-        <div className="bg-slate-50 p-8 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-center">
-            <div className="w-16 h-16 bg-white border border-slate-200 rounded-full flex items-center justify-center mb-4 shadow-sm text-slate-400">
-                {state?.status === "INITIALIZING" || loading ? (
-                    <Loader2 className="animate-spin text-blue-600" size={32} />
-                ) : (
-                    <MessageSquare size={32} />
-                )}
-            </div>
-            <h3 className="font-bold text-slate-900">
-                {state?.status === "INITIALIZING" || loading ? "Initializing..." : "Disconnected"}
-            </h3>
-            <p className="text-xs text-slate-500 mt-1 max-w-[200px] leading-relaxed">
-                Connect your WhatsApp account to enable automated fee reminders.
-            </p>
             <button
-                disabled={loading || state?.status === "INITIALIZING"}
+                disabled={isInitializing}
                 onClick={handleInit}
-                className="mt-6 w-full py-3 bg-blue-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-blue-700 disabled:opacity-50 active:scale-95 transition-all shadow-lg shadow-blue-500/20"
+                className={`mt-6 w-full py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 ${isInitializing
+                        ? "bg-slate-100 text-slate-400"
+                        : "bg-blue-600 text-white hover:bg-blue-700 shadow-blue-500/20"
+                    }`}
             >
-                {state?.status === "INITIALIZING" || loading ? "Spinning up..." : "Link New Session"}
+                {isInitializing ? (
+                    <>
+                        <Loader2 className="animate-spin" size={16} />
+                        Spinning up...
+                    </>
+                ) : (
+                    state?.status === "WAITING_FOR_SCAN" ? "Refresh QR Code" : "Start Connection"
+                )}
             </button>
         </div>
     );
 }
+
