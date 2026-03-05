@@ -131,7 +131,8 @@ export function PaymentButtons({ feeId, amount, studentName }: PaymentButtonsPro
             {/* JazzCash */}
             <button
                 onClick={() => handlePay("JAZZCASH")}
-                disabled={state === "loading"}
+                // disabled={state === "loading"}
+                disabled
                 className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-base shadow-2xl shadow-slate-900/20 hover:bg-slate-800 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-60 disabled:cursor-not-allowed"
             >
                 {state === "loading" && activeMethod === "JAZZCASH"
@@ -143,7 +144,8 @@ export function PaymentButtons({ feeId, amount, studentName }: PaymentButtonsPro
             {/* Easypaisa */}
             <button
                 onClick={() => handlePay("EASYPAISA")}
-                disabled={state === "loading"}
+                disabled
+                // disabled={state === "loading"}
                 className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black text-base shadow-2xl shadow-emerald-500/20 hover:bg-emerald-500 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-60 disabled:cursor-not-allowed"
             >
                 {state === "loading" && activeMethod === "EASYPAISA"
